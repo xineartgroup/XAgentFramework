@@ -8,9 +8,15 @@ namespace XAgentFramework
 
         private static readonly List<string> imagePaths = [];
 
-        private static readonly string geminiAPIKey = ConfigurationManager.AppSettings["GeminiAPIKey"] ?? "";
+        private static readonly string geminiAPIKey = GetAPIKey();
 
         private CancellationTokenSource? cts;
+
+        public ChatForm()
+        {
+            InitializeComponent();
+            chatList1.SelectionChanged += ChatList1_SelectionChanged;
+        }
 
         public static void ModelUrlMap()
         {
@@ -35,10 +41,9 @@ namespace XAgentFramework
             }
         }
 
-        public ChatForm()
+        private static string GetAPIKey()
         {
-            InitializeComponent();
-            chatList1.SelectionChanged += ChatList1_SelectionChanged;
+            return File.ReadAllText("gemini_api_key.txt");
         }
 
         private void Form1_Load(object sender, EventArgs e)
