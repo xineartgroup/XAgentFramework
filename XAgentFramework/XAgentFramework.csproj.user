@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Compile Update="ChatList.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="ChatMessageItem.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="ChatView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="ChatForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="NameForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>
