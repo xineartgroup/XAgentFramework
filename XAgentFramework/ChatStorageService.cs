@@ -14,7 +14,7 @@ namespace XAgentFramework
         /// <summary>
         /// Saves a complete ChatListItem (metadata and messages) to a JSON file.
         /// </summary>
-        public static async Task SaveChatListItemAsync(ChatListItem chatItem, string filePath)
+        public static async Task SaveChatListItemAsync(ChatItem chatItem, string filePath)
         {
             string? directory = Path.GetDirectoryName(filePath);
             if (!string.IsNullOrEmpty(directory))
@@ -29,7 +29,7 @@ namespace XAgentFramework
         /// <summary>
         /// Synchronous version for simple local file saves.
         /// </summary>
-        public static void SaveChatListItem(ChatListItem chatItem, string filePath)
+        public static void SaveChatListItem(ChatItem chatItem, string filePath)
         {
             string? directory = Path.GetDirectoryName(filePath);
             if (!string.IsNullOrEmpty(directory))
@@ -44,7 +44,7 @@ namespace XAgentFramework
         /// <summary>
         /// Loads a ChatListItem from a JSON file and re-initializes its GeminiClient.
         /// </summary>
-        public static async Task<ChatListItem?> LoadChatListItemAsync(string filePath)
+        public static async Task<ChatItem?> LoadChatListItemAsync(string filePath)
         {
             if (!File.Exists(filePath))
             {
@@ -52,14 +52,14 @@ namespace XAgentFramework
             }
 
             using FileStream openStream = File.OpenRead(filePath);
-            ChatListItem? chatItem = await JsonSerializer.DeserializeAsync<ChatListItem>(openStream, JsonOptions);
+            ChatItem? chatItem = await JsonSerializer.DeserializeAsync<ChatItem>(openStream, JsonOptions);
 
             if (chatItem != null)
             {
                 // Re-instantiate the runtime Client if URL and Key are available
-                if (!string.IsNullOrEmpty(chatItem.URL) && !string.IsNullOrEmpty(chatItem.Key))
+                if (!string.IsNullOrEmpty(chatItem.AgentInfo.URL) && !string.IsNullOrEmpty(chatItem.AgentInfo.Key))
                 {
-                    chatItem.Client = new GeminiClient(chatItem.URL, chatItem.Key, chatItem.SystemPrompt);
+                    chatItem.Client = new GeminiClient(chatItem.AgentInfo.URL, chatItem.AgentInfo.Key, chatItem.AgentInfo.SystemPrompt);
                 }
             }
 
@@ -69,7 +69,7 @@ namespace XAgentFramework
         /// <summary>
         /// Synchronous version to load a ChatListItem from disk.
         /// </summary>
-        public static ChatListItem? LoadChatListItem(string filePath)
+        public static ChatItem? LoadChatListItem(string filePath)
         {
             if (!File.Exists(filePath))
             {
@@ -77,14 +77,14 @@ namespace XAgentFramework
             }
 
             string json = File.ReadAllText(filePath);
-            ChatListItem? chatItem = JsonSerializer.Deserialize<ChatListItem>(json, JsonOptions);
+            ChatItem? chatItem = JsonSerializer.Deserialize<ChatItem>(json, JsonOptions);
 
             if (chatItem != null)
             {
                 // Re-instantiate the runtime Client if URL and Key are available
-                if (!string.IsNullOrEmpty(chatItem.URL) && !string.IsNullOrEmpty(chatItem.Key))
+                if (!string.IsNullOrEmpty(chatItem.AgentInfo.URL) && !string.IsNullOrEmpty(chatItem.AgentInfo.Key))
                 {
-                    chatItem.Client = new GeminiClient(chatItem.URL, chatItem.Key, chatItem.SystemPrompt);
+                    chatItem.Client = new GeminiClient(chatItem.AgentInfo.URL, chatItem.AgentInfo.Key, chatItem.AgentInfo.SystemPrompt);
                 }
             }
 

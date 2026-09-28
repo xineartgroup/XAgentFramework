@@ -4,8 +4,6 @@ namespace XAgentFramework
 {
     public partial class ChatForm : Form
     {
-        private static readonly Dictionary<string, string> modelMap = [];
-
         private static readonly List<string> filePaths = [];
 
         private static readonly string geminiAPIKey = GetAPIKey();
@@ -35,7 +33,11 @@ namespace XAgentFramework
 
                     if (!string.IsNullOrEmpty(modelName) && !string.IsNullOrEmpty(url))
                     {
-                        modelMap[modelName] = url;
+                        AgentInfo agentInfo = new()
+                        {
+                            URL = url
+                        };
+                        SettingsForm.ModelMap[modelName] = agentInfo;
                     }
                 }
             }
@@ -53,7 +55,7 @@ namespace XAgentFramework
             ModelUrlMap();
 
             cboModels.Items.Add("<-- Select an Agent -->");
-            foreach (var kvp in modelMap)
+            foreach (var kvp in SettingsForm.ModelMap)
             {
                 cboModels.Items.Add(kvp.Key);
             }
@@ -69,7 +71,7 @@ namespace XAgentFramework
         {
             if (cboModels.SelectedIndex > 0 && cboModels.Items.Count > cboModels.SelectedIndex && cboModels.Items[cboModels.SelectedIndex] is string baseName)
             {
-                string baseUrl = modelMap.TryGetValue(baseName, out string? value) ? value : string.Empty;
+                string baseUrl = SettingsForm.ModelMap.TryGetValue(baseName, out AgentInfo? value) ? value.URL : string.Empty;
                 NameForm nameForm = new()
                 {
                     StartPosition = FormStartPosition.CenterParent,
@@ -83,7 +85,7 @@ namespace XAgentFramework
 
                     if (client != null)
                     {
-                        int result = chatList1.AddItem(new ChatListItem(modelName, baseUrl, geminiAPIKey, modelPrompt));
+                        int result = chatList1.AddItem(new ChatItem(modelName, baseUrl, geminiAPIKey, modelPrompt));
                         if (result >= 0)
                         {
                             chatList1.SetText(modelName);
@@ -117,12 +119,12 @@ namespace XAgentFramework
                         MessageBox.Show($"Error loading model configuration: {task.Exception.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
                     }
-                    ChatListItem chatItem = task.Result ?? new ChatListItem();
+                    ChatItem chatItem = task.Result ?? new ChatItem();
                     List<Message> messages = chatItem.Messages;
                     string modelName = chatItem.Name;
-                    string modelPrompt = chatItem.SystemPrompt;
-                    string baseUrl = chatItem.URL;
-                    int result = chatList1.AddItem(new ChatListItem(modelName, baseUrl, geminiAPIKey, modelPrompt));
+                    string modelPrompt = chatItem.AgentInfo.SystemPrompt;
+                    string baseUrl = chatItem.AgentInfo.URL;
+                    int result = chatList1.AddItem(new ChatItem(modelName, baseUrl, geminiAPIKey, modelPrompt));
                     if (result < 0)
                     {
                         MessageBox.Show($"Ensure that model '{modelName}' details are unique and correct.", "Failed to Add Model", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -132,7 +134,7 @@ namespace XAgentFramework
                         chatList1.SetSelectedMessages(messages);
                         chatView1.RenderMessages(messages);
 
-                        ChatListItem? selectedItem = chatList1.GetSelectedItem();
+                        ChatItem? selectedItem = chatList1.GetSelectedItem();
                         selectedItem?.Client = new(baseUrl, geminiAPIKey, modelPrompt);
                         selectedItem?.Client?.UpdateHistory(GetHistory(messages));
                         chatList1.SetSelectedItem(selectedItem);
@@ -212,7 +214,7 @@ namespace XAgentFramework
             }
             else if (!string.IsNullOrWhiteSpace(txtPrompt.Text) || filePaths.Count > 0)
             {
-                ChatListItem? chatItem = chatList1.GetSelectedItem();
+                ChatItem? chatItem = chatList1.GetSelectedItem();
                 GeminiClient? client = chatItem?.Client;
 
                 if (client != null)

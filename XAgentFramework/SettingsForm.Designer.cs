@@ -36,6 +36,7 @@
             label1 = new Label();
             label2 = new Label();
             label3 = new Label();
+            chkOrchestrator = new CheckBox();
             SuspendLayout();
             // 
             // btnCancel
@@ -109,6 +110,16 @@
             label3.TabIndex = 7;
             label3.Text = "System Prompt";
             // 
+            // chkOrchestrator
+            // 
+            chkOrchestrator.AutoSize = true;
+            chkOrchestrator.Location = new Point(109, 173);
+            chkOrchestrator.Name = "chkOrchestrator";
+            chkOrchestrator.Size = new Size(127, 19);
+            chkOrchestrator.TabIndex = 8;
+            chkOrchestrator.Text = "Orchestrator Agent";
+            chkOrchestrator.UseVisualStyleBackColor = true;
+            // 
             // SettingsForm
             // 
             AcceptButton = btnOK;
@@ -116,6 +127,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             CancelButton = btnCancel;
             ClientSize = new Size(380, 363);
+            Controls.Add(chkOrchestrator);
             Controls.Add(label3);
             Controls.Add(label2);
             Controls.Add(label1);
@@ -142,5 +154,6 @@
         private Label label1;
         private Label label2;
         private Label label3;
+        private CheckBox chkOrchestrator;
     }
 }

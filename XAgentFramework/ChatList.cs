@@ -8,7 +8,7 @@ namespace XAgentFramework
         private const int IMAGE_HEIGHT = 40;
         private const int LABEL_HEIGHT = 50;
         private int hoverIndex = -1;
-        private readonly List<ChatListItem> items = [];
+        private readonly List<ChatItem> items = [];
 
         private ContextMenuStrip contextMenu = null!;
         private ToolStripMenuItem saveMenuItem = null!;
@@ -34,13 +34,13 @@ namespace XAgentFramework
         public event SelectionChangedEventHandler? SelectionChangeEvent = null;
         public event EventHandler<SelectionChangedEventArgs>? SelectionChanged;
 
-        public event EventHandler<ChatListItem>? SaveRequested;
-        public event EventHandler<ChatListItem>? DeleteRequested;
-        public event EventHandler<ChatListItem>? SettingsRequested;
+        public event EventHandler<ChatItem>? SaveRequested;
+        public event EventHandler<ChatItem>? DeleteRequested;
+        public event EventHandler<ChatItem>? SettingsRequested;
 
-        public class SelectionChangedEventArgs(ChatListItem item, bool itemChanged) : EventArgs
+        public class SelectionChangedEventArgs(ChatItem item, bool itemChanged) : EventArgs
         {
-            public ChatListItem Item { get; } = item;
+            public ChatItem Item { get; } = item;
             public bool ItemChanged { get; } = itemChanged;
         }
 
@@ -84,7 +84,7 @@ namespace XAgentFramework
             ]);
         }
 
-        private static async Task SaveItem(ChatListItem item)
+        private static async Task SaveItem(ChatItem item)
         {
             using SaveFileDialog saveFileDialog = new()
             {
@@ -267,7 +267,7 @@ namespace XAgentFramework
             }
         }
 
-        public int AddItem(ChatListItem item)
+        public int AddItem(ChatItem item)
         {
             for (int i = 0; i < items.Count; i++)
             {
@@ -297,7 +297,7 @@ namespace XAgentFramework
             return -1;
         }
 
-        public int RemoveItem(ChatListItem item)
+        public int RemoveItem(ChatItem item)
         {
             int index = items.IndexOf(item);
             if (index != -1)
@@ -335,7 +335,7 @@ namespace XAgentFramework
             }
         }
 
-        public bool ContainsItem(ChatListItem item) => items.Contains(item);
+        public bool ContainsItem(ChatItem item) => items.Contains(item);
 
         public string GetUniqueName(string baseName)
         {
@@ -357,7 +357,7 @@ namespace XAgentFramework
             }
         }
 
-        public void SelectItem(ChatListItem item)
+        public void SelectItem(ChatItem item)
         {
             for (int i = 0; i < items.Count; i++)
             {
@@ -411,11 +411,11 @@ namespace XAgentFramework
             }
         }
 
-        internal void SetSelectedItem(ChatListItem? selectedItem)
+        internal void SetSelectedItem(ChatItem? selectedItem)
         {
             if (SelectedIndex >= 0 && SelectedIndex < items.Count)
             {
-                items[SelectedIndex] = selectedItem ?? new ChatListItem();
+                items[SelectedIndex] = selectedItem ?? new ChatItem();
                 panel1.Invalidate();
             }
         }
@@ -424,7 +424,7 @@ namespace XAgentFramework
 
         public string GetSelectedText() => (SelectedIndex >= 0 && SelectedIndex < items.Count) ? items[SelectedIndex].Name : string.Empty;
 
-        public ChatListItem? GetSelectedItem() => (SelectedIndex >= 0 && SelectedIndex < items.Count) ? items[SelectedIndex] : null;
+        public ChatItem? GetSelectedItem() => (SelectedIndex >= 0 && SelectedIndex < items.Count) ? items[SelectedIndex] : null;
 
         public int ItemCount() => items.Count;
     }

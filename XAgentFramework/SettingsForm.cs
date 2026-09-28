@@ -1,13 +1,10 @@
-﻿using System.Configuration;
-using System.Data;
-
-namespace XAgentFramework
+﻿namespace XAgentFramework
 {
     public partial class SettingsForm : Form
     {
-        private readonly Dictionary<string, string> modelMap = [];
+        public static readonly Dictionary<string, AgentInfo> ModelMap = [];
 
-        public ChatListItem? SelectedItem = null;
+        public ChatItem? SelectedItem = null;
 
         public SettingsForm()
         {
@@ -18,43 +15,21 @@ namespace XAgentFramework
         {
             if (SelectedItem != null)
             {
-                var keys = ConfigurationManager.AppSettings.AllKeys;
-
-                IEnumerable<string?> nameKeys = keys.Where(k => k != null && k.StartsWith("Model:") && k.EndsWith(":Name"));
-
                 int index = 0;
                 int selectedIndex = -1;
 
-                foreach (var nameKey in nameKeys)
+                foreach (var kvp in ModelMap)
                 {
-                    string modelName = ConfigurationManager.AppSettings[nameKey] ?? "";
-
-                    if (nameKey != null)
+                    cboModels.Items.Add(kvp.Key);
+                    if (SelectedItem.AgentInfo.URL == kvp.Value.URL)
                     {
-                        string urlKey = nameKey.Replace(":Name", ":Url");
-                        string url = ConfigurationManager.AppSettings[urlKey] ?? "";
-
-                        if (!string.IsNullOrEmpty(modelName) && !string.IsNullOrEmpty(url))
-                        {
-                            modelMap[modelName] = url;
-                        }
-
-                        if (SelectedItem.URL == url)
-                        {
-                            selectedIndex = index;
-                        }
+                        selectedIndex = index;
                     }
-
                     index++;
                 }
 
-                foreach (var kvp in modelMap)
-                {
-                    cboModels.Items.Add(kvp.Key);
-                }
-
                 textBoxName.Text = SelectedItem.Name;
-                textBoxPrompt.Text = SelectedItem.SystemPrompt;
+                textBoxPrompt.Text = SelectedItem.AgentInfo.SystemPrompt;
                 cboModels.SelectedIndex = selectedIndex;
             }
         }
@@ -64,11 +39,34 @@ namespace XAgentFramework
             if (SelectedItem != null)
             {
                 SelectedItem.Name = textBoxName.Text;
-                SelectedItem.SystemPrompt = textBoxPrompt.Text;
-                SelectedItem.URL = modelMap[cboModels.SelectedItem?.ToString() ?? ""];
+                SelectedItem.AgentInfo.SystemPrompt = textBoxPrompt.Text + GetOrchestratorPrompt();
+                SelectedItem.AgentInfo.URL = ModelMap[cboModels.SelectedItem?.ToString() ?? ""].URL;
             }
             DialogResult = DialogResult.OK;
             Close();
+        }
+
+        private string GetOrchestratorPrompt()
+        {
+            if (chkOrchestrator.Checked)
+            {
+                string prompt = "\r\nYou are an orchestrator that can use other agents to complete tasks." +
+                    "\r\nTo accomplish this, you can utilize the following tools." +
+                    "\r\nFirst, determine if you need to use a tool to complete the task." +
+                    "\r\nIf so, write a prompt for the tools, in the format:";
+
+                int i = 1;
+                foreach (KeyValuePair<string, AgentInfo> kvp in ModelMap)
+                {
+                    prompt += $"\r\n[{kvp.Key}]: [prompt{i++}]";
+                }
+
+                return prompt;
+            }
+            else
+            {
+                return "";
+            }
         }
 
         private void BtnCancel_Click(object sender, EventArgs e)
