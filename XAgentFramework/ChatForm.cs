@@ -202,7 +202,7 @@ namespace XAgentFramework
 
         private async void BtnSend_Click(object sender, EventArgs e)
         {
-            btnSend.Image = Properties.Resources.cancel;
+            btnSend.Image = Properties.Resources.stop;
             
             lblStatus.Text = "Thinking...";
 
