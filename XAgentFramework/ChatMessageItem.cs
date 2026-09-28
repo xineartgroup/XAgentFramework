@@ -1,4 +1,6 @@
 ﻿using System.Drawing.Drawing2D;
+using System.Net.Mail;
+using static System.Windows.Forms.DataFormats;
 
 namespace XAgentFramework
 {
@@ -12,7 +14,7 @@ namespace XAgentFramework
         private const int GAP = 4;
 
         private readonly Message _message;
-        private readonly List<Bitmap> _attachmentBmps = [];
+        private readonly List<Attachment> _attachments = [];
 
         private readonly Button btnCopy = new();
         private readonly Button btnDelete = new();
@@ -22,12 +24,12 @@ namespace XAgentFramework
         public event EventHandler<Message>? DeleteRequested;
         public event EventHandler<Message>? SaveRequested;
 
-        public ChatMessageItem(Message message, List<Bitmap> attachmentBmps)
+        public ChatMessageItem(Message message, List<Attachment> attachments)
         {
             _message = message;
-            if (attachmentBmps != null)
+            if (attachments != null)
             {
-                _attachmentBmps.AddRange(attachmentBmps);
+                _attachments.AddRange(attachments);
             }
 
             DoubleBuffered = true;
@@ -187,22 +189,30 @@ namespace XAgentFramework
             g.DrawString(sender, fontSender, Brushes.Brown, pointSender);
             g.DrawString(txtTime, fontTime, Brushes.Gray, pointTime);
 
-            if (_attachmentBmps.Count > 0)
+            if (_attachments.Count > 0)
             {
                 int currentY = contentStartY;
                 int maxAvailableWidth = rectContent.Width;
 
-                foreach (Bitmap bmp in _attachmentBmps)
+                foreach (Attachment att in _attachments)
                 {
-                    // Scale bitmap proportionally to fit bubble content area width/height limits
-                    SizeF scaledSize = GetProportionalSize(bmp.Size, maxAvailableWidth, ATTACHMENT_MAX_HEIGHT);
-                    Rectangle imgRect = new(SPACINGX + x, currentY, (int)scaledSize.Width, (int)scaledSize.Height);
+                    if (att.Image != null)
+                    {
+                        SizeF scaledSize = GetProportionalSize(att.Image.Size, maxAvailableWidth, ATTACHMENT_MAX_HEIGHT);
+                        Rectangle imgRect = new(SPACINGX + x, currentY, (int)scaledSize.Width, (int)scaledSize.Height);
 
-                    g.DrawImage(bmp, imgRect);
-                    currentY += (int)scaledSize.Height + ATTACHMENT_GAP;
+                        g.DrawImage(att.Image, imgRect);
+                        currentY += (int)scaledSize.Height + ATTACHMENT_GAP;
+                    }
+                    else
+                    {
+                        RectangleF textRect = new(SPACINGX + x, currentY, maxAvailableWidth, 24);
+
+                        g.DrawString(att.FileName, fontContent, Brushes.Black, textRect);
+                        currentY += 24 + ATTACHMENT_GAP;
+                    }
                 }
 
-                // Render text below attachments if text content exists
                 if (!string.IsNullOrWhiteSpace(_message.Content) && !_message.Content.StartsWith("[Attachment:"))
                 {
                     Rectangle textRect = new(SPACINGX + x, currentY, maxAvailableWidth, contentHeight - (currentY - contentStartY));
@@ -232,15 +242,35 @@ namespace XAgentFramework
             int attachmentsHeight = 0;
             int maxAttachmentWidth = 0;
 
-            if (_attachmentBmps.Count > 0)
+            if (_attachments.Count > 0)
             {
-                foreach (Bitmap bmp in _attachmentBmps)
+                foreach (Attachment att in _attachments)
                 {
-                    SizeF scaledSize = GetProportionalSize(bmp.Size, maxContentWidth, ATTACHMENT_MAX_HEIGHT);
-                    attachmentsHeight += (int)scaledSize.Height + ATTACHMENT_GAP;
-                    if ((int)scaledSize.Width > maxAttachmentWidth)
+                    if (att.Image != null)
                     {
-                        maxAttachmentWidth = (int)scaledSize.Width;
+                        SizeF scaledSize = GetProportionalSize(att.Image.Size, maxContentWidth, ATTACHMENT_MAX_HEIGHT);
+                        attachmentsHeight += (int)scaledSize.Height + ATTACHMENT_GAP;
+
+                        if ((int)scaledSize.Width > maxAttachmentWidth)
+                        {
+                            maxAttachmentWidth = (int)scaledSize.Width;
+                        }
+                    }
+                    else
+                    {
+                        // Measure non-image text representation directly
+                        SizeF textAttachmentSize = g.MeasureString(att.FileName, fontContent, maxContentWidth);
+
+                        // Add padding for file chip background (e.g., 20px padding)
+                        int chipWidth = Math.Min((int)textAttachmentSize.Width + 20, maxContentWidth);
+                        int chipHeight = 32; // Fixed height for non-image attachment chips
+
+                        attachmentsHeight += chipHeight + ATTACHMENT_GAP;
+
+                        if (chipWidth > maxAttachmentWidth)
+                        {
+                            maxAttachmentWidth = chipWidth;
+                        }
                     }
                 }
 
@@ -258,7 +288,7 @@ namespace XAgentFramework
             int headerWidth = (int)(fontSenderSize.Width + fontTimeSize.Width + (3 * SPACINGX));
             int actionsWidth = (BUTTON_SIZE * 3) + (GAP * 2) + (4 * SPACINGX);
 
-            int bodyWidth = _attachmentBmps.Count > 0
+            int bodyWidth = _attachments.Count > 0
                 ? Math.Max(maxAttachmentWidth, (int)fontContentSize.Width) + (4 * SPACINGX)
                 : (int)fontContentSize.Width + (4 * SPACINGX);
 

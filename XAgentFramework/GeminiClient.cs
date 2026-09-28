@@ -26,9 +26,9 @@ namespace XAgentFramework
         }
 
         /// <summary>
-        /// Sends a prompt along with optional image paths to the Gemini REST API.
+        /// Sends a prompt along with optional file paths to the Gemini REST API.
         /// </summary>
-        public async Task<Answer> Question(string prompt, IEnumerable<string>? imagePaths = null, CancellationToken cancellationToken = default)
+        public async Task<Answer> Question(string prompt, IEnumerable<string>? filePaths = null, CancellationToken cancellationToken = default)
         {
             var parts = new List<Part>();
 
@@ -38,9 +38,9 @@ namespace XAgentFramework
             }
 
             // Convert images to base64 inline data parts
-            if (imagePaths != null)
+            if (filePaths != null)
             {
-                foreach (var filePath in imagePaths)
+                foreach (var filePath in filePaths)
                 {
                     if (File.Exists(filePath))
                     {
@@ -183,6 +183,7 @@ namespace XAgentFramework
             string extension = Path.GetExtension(filePath).ToLowerInvariant();
             return extension switch
             {
+                ".pdf" => "application/pdf",
                 ".jpg" or ".jpeg" => "image/jpeg",
                 ".png" => "image/png",
                 ".webp" => "image/webp",

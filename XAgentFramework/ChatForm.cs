@@ -6,7 +6,7 @@ namespace XAgentFramework
     {
         private static readonly Dictionary<string, string> modelMap = [];
 
-        private static readonly List<string> imagePaths = [];
+        private static readonly List<string> filePaths = [];
 
         private static readonly string geminiAPIKey = GetAPIKey();
 
@@ -178,15 +178,15 @@ namespace XAgentFramework
 
             OpenFileDialog openFileDialog = new()
             {
-                Filter = "Image Files (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp|All Files (*.*)|*.*",
-                Title = "Select Image Files",
+                Filter = "All Files (*.*)|*.*|Image Files (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp|PDF Files (*.pdf)|*.pdf",
+                Title = "Select Files",
                 Multiselect = true
             };
             
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                imagePaths.AddRange(openFileDialog.FileNames);
-                lblAttachmentStatus.Text += $"[Attached {openFileDialog.FileNames.Length} image(s)] ";
+                filePaths.AddRange(openFileDialog.FileNames);
+                lblAttachmentStatus.Text += $"[Attached {openFileDialog.FileNames.Length} file(s)] ";
                 btnCancelAttachment.Enabled = true;
             }
 
@@ -195,7 +195,7 @@ namespace XAgentFramework
 
         private void BtnCancelAttachment_Click(object sender, EventArgs e)
         {
-            imagePaths.Clear();
+            filePaths.Clear();
             lblAttachmentStatus.Text = "";
             btnCancelAttachment.Enabled = false;
         }
@@ -210,7 +210,7 @@ namespace XAgentFramework
             {
                 cts.Cancel();
             }
-            else if (!string.IsNullOrWhiteSpace(txtPrompt.Text) || imagePaths.Count > 0)
+            else if (!string.IsNullOrWhiteSpace(txtPrompt.Text) || filePaths.Count > 0)
             {
                 ChatListItem? chatItem = chatList1.GetSelectedItem();
                 GeminiClient? client = chatItem?.Client;
@@ -223,7 +223,7 @@ namespace XAgentFramework
                         Recipient = chatItem?.Name ?? "Model",
                         Content = txtPrompt.Text,
                         Time = DateTime.Now,
-                        ImagePaths = [.. imagePaths]
+                        FilePaths = [.. filePaths]
                     };
 
                     List<Message> messages = chatList1.GetSelectedItem()?.Messages ?? [];
@@ -234,7 +234,7 @@ namespace XAgentFramework
                     try
                     {
 
-                        Answer answer = await client.Question(txtPrompt.Text, imagePaths, cts.Token);
+                        Answer answer = await client.Question(txtPrompt.Text, filePaths, cts.Token);
 
                         if (answer.Success)
                         {
@@ -288,7 +288,7 @@ namespace XAgentFramework
                 }
             }
 
-            imagePaths.Clear();
+            filePaths.Clear();
 
             lblAttachmentStatus.Text = "";
             lblStatus.Text = "Ready";

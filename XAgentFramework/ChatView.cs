@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Net.Mail;
 
 namespace XAgentFramework
 {
@@ -8,7 +9,7 @@ namespace XAgentFramework
         private readonly Panel messagesContainer = new();
         private List<Message> _currentMessages = [];
 
-        public event EventHandler? SelectionChangeEvent;
+        //public event EventHandler? SelectionChangeEvent;
 
         public ChatView()
         {
@@ -48,8 +49,8 @@ namespace XAgentFramework
 
             foreach (var message in _currentMessages)
             {
-                List<Bitmap> attachmentBmps = GetAttachmentBitmaps(message);
-                var messageItem = new ChatMessageItem(message, attachmentBmps);
+                List<Attachment> attachments = GetAttachments(message);
+                var messageItem = new ChatMessageItem(message, attachments);
 
                 messageItem.CopyRequested += MessageItem_CopyRequested;
                 messageItem.DeleteRequested += MessageItem_DeleteRequested;
@@ -86,15 +87,33 @@ namespace XAgentFramework
             RenderMessages(_currentMessages);
         }
 
-        private static List<Bitmap> GetAttachmentBitmaps(Message message)
+        private static List<Attachment> GetAttachments(Message message)
         {
-            List<Bitmap> bitmaps = [];
-            foreach (string imagePath in message.ImagePaths)
+            List<Attachment> attachments = [];
+            HashSet<string> validExtensions = [".jpg", ".jpeg", ".png", ".bmp", ".gif"];
+
+            foreach (string filePath in message.FilePaths)
             {
-                Bitmap bmp = new(imagePath);
-                bitmaps.Add(bmp);
+                string extension = Path.GetExtension(filePath).ToLowerInvariant();
+
+                if (validExtensions.Contains(extension))
+                {
+                    try
+                    {
+                        attachments.Add(new Attachment { Image = new Bitmap(filePath) });
+                    }
+                    catch
+                    {
+                        // Fall back to filename text on load failure
+                    }
+                }
+                else
+                {
+                    attachments.Add(new Attachment { FileName = Path.GetFileName(filePath) });
+                }
             }
-            return bitmaps;
+
+            return attachments;
         }
     }
 }

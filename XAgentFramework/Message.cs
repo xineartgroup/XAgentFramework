@@ -12,19 +12,10 @@
 
         public bool IsRead { get; set; } = false;
 
-        public List<string> ImagePaths { get; set; } = [];
+        public List<string> FilePaths { get; set; } = [];
 
         public Message()
         {
-        }
-
-        public Message(int sender, int recipient, string content, DateTime time, bool isRead)
-        {
-            Sender = sender.ToString();
-            Recipient = recipient.ToString();
-            Content = content;
-            Time = time;
-            IsRead = isRead;
         }
 
         public override bool Equals(object? obj)
