@@ -54,6 +54,7 @@
             txtPrompt.Name = "txtPrompt";
             txtPrompt.Size = new Size(325, 70);
             txtPrompt.TabIndex = 0;
+            txtPrompt.KeyPress += TxtPrompt_KeyPress;
             // 
             // btnSend
             // 
@@ -176,7 +177,6 @@
             // 
             // ChatForm
             // 
-            AcceptButton = btnSend;
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(703, 445);

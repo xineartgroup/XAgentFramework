@@ -182,7 +182,7 @@ namespace XAgentFramework
                 Title = "Select Files",
                 Multiselect = true
             };
-            
+
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
                 filePaths.AddRange(openFileDialog.FileNames);
@@ -203,7 +203,7 @@ namespace XAgentFramework
         private async void BtnSend_Click(object sender, EventArgs e)
         {
             btnSend.Image = Properties.Resources.stop;
-            
+
             lblStatus.Text = "Thinking...";
 
             if (cts != null)
@@ -293,8 +293,17 @@ namespace XAgentFramework
             lblAttachmentStatus.Text = "";
             lblStatus.Text = "Ready";
             btnCancelAttachment.Enabled = false;
-            
+
             btnSend.Image = Properties.Resources.send;
+        }
+
+        private void TxtPrompt_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == (char)Keys.Enter && (ModifierKeys & Keys.Shift) == 0)
+            {
+                e.Handled = true;
+                BtnSend_Click(sender, EventArgs.Empty);
+            }
         }
     }
 }

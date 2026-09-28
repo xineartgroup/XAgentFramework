@@ -16,5 +16,8 @@
     <Compile Update="NameForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="SettingsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
   </ItemGroup>
 </Project>

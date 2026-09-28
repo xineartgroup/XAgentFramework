@@ -84,15 +84,6 @@ namespace XAgentFramework
             ]);
         }
 
-        private async void SaveMenuItem_Click(object? sender, EventArgs e)
-        {
-            if (GetSelectedItem() is { } item)
-            {
-                await SaveItem(item);
-                SaveRequested?.Invoke(this, item);
-            }
-        }
-
         private static async Task SaveItem(ChatListItem item)
         {
             using SaveFileDialog saveFileDialog = new()
@@ -116,6 +107,15 @@ namespace XAgentFramework
             }
         }
 
+        private async void SaveMenuItem_Click(object? sender, EventArgs e)
+        {
+            if (GetSelectedItem() is { } item)
+            {
+                await SaveItem(item);
+                SaveRequested?.Invoke(this, item);
+            }
+        }
+
         private void DeleteMenuItem_Click(object? sender, EventArgs e)
         {
             if (MessageBox.Show("Are you sure you want to delete this chat?", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
@@ -132,7 +132,17 @@ namespace XAgentFramework
         {
             if (GetSelectedItem() is { } item)
             {
-                SettingsRequested?.Invoke(this, item);
+                SettingsForm settingsForm = new()
+                {
+                    SelectedItem = item,
+                    StartPosition = FormStartPosition.CenterParent
+                };
+
+                if (settingsForm.ShowDialog() == DialogResult.OK)
+                {
+                    SetSelectedItem(settingsForm.SelectedItem);
+                    SettingsRequested?.Invoke(this, item);
+                }
             }
         }
 
