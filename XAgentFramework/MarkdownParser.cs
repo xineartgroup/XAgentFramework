@@ -29,14 +29,14 @@ namespace XAgentFramework
 
     public class MarkdownTableBlock
     {
-        public List<string> Headers { get; set; } = new();
-        public List<List<List<MarkdownInlineToken>>> Rows { get; set; } = new();
+        public List<string> Headers { get; set; } = [];
+        public List<List<List<MarkdownInlineToken>>> Rows { get; set; } = [];
     }
 
     public class MarkdownBlock
     {
         public MarkdownBlockType Type { get; set; }
-        public List<MarkdownInlineToken> Tokens { get; set; } = new();
+        public List<MarkdownInlineToken> Tokens { get; set; } = [];
         public MarkdownTableBlock? TableData { get; set; }
         public string RawCode { get; set; } = string.Empty;
         public string Language { get; set; } = string.Empty;
@@ -48,7 +48,7 @@ namespace XAgentFramework
         public string Url { get; set; } = string.Empty;
     }
 
-    public static class MiniMarkdownParser
+    public static class MarkdownParser
     {
         public static List<MarkdownBlock> Parse(string content)
         {
@@ -98,7 +98,7 @@ namespace XAgentFramework
                 }
 
                 // 2. Table Detection
-                if (trimmed.StartsWith("|") && trimmed.EndsWith("|"))
+                if (trimmed.StartsWith('|') && trimmed.EndsWith('|'))
                 {
                     var tableBlock = ParseTable(lines, ref i);
                     if (tableBlock != null)
@@ -149,12 +149,10 @@ namespace XAgentFramework
             var table = new MarkdownTableBlock();
 
             string headerLine = lines[index].Trim();
-            table.Headers = headerLine.Split('|', StringSplitOptions.RemoveEmptyEntries)
-                                      .Select(h => h.Trim())
-                                      .ToList();
+            table.Headers = [.. headerLine.Split('|', StringSplitOptions.RemoveEmptyEntries).Select(h => h.Trim())];
             index++;
 
-            if (index < lines.Length && lines[index].Trim().StartsWith("|") && lines[index].Contains("---"))
+            if (index < lines.Length && lines[index].Trim().StartsWith('|') && lines[index].Contains("---"))
             {
                 index++;
             }
@@ -162,7 +160,7 @@ namespace XAgentFramework
             while (index < lines.Length)
             {
                 string rowLine = lines[index].Trim();
-                if (!rowLine.StartsWith("|") || !rowLine.EndsWith("|")) break;
+                if (!rowLine.StartsWith('|') || !rowLine.EndsWith('|')) break;
 
                 string[] rawCells = rowLine.Split('|', StringSplitOptions.RemoveEmptyEntries);
                 var rowCells = new List<List<MarkdownInlineToken>>();
@@ -196,7 +194,7 @@ namespace XAgentFramework
                 if (string.IsNullOrEmpty(part)) continue;
 
                 // Hyperlink [Label](Url)
-                if (part.StartsWith("[") && part.Contains("](") && part.EndsWith(")"))
+                if (part.StartsWith('[') && part.Contains("](") && part.EndsWith(')'))
                 {
                     int linkTextEnd = part.IndexOf("](");
                     string label = part[1..linkTextEnd];
@@ -219,7 +217,7 @@ namespace XAgentFramework
                     });
                 }
                 // Inline Code `code`
-                else if (part.StartsWith("`") && part.EndsWith("`") && part.Length >= 2)
+                else if (part.StartsWith('`') && part.EndsWith('`') && part.Length >= 2)
                 {
                     tokens.Add(new MarkdownInlineToken
                     {
@@ -247,7 +245,7 @@ namespace XAgentFramework
     {
         public static Size MeasureMarkdown(Graphics g, string text, Font baseFont, int maxWidth)
         {
-            var blocks = MiniMarkdownParser.Parse(text);
+            var blocks = MarkdownParser.Parse(text);
             int currentY = 0;
             int maxMeasuredWidth = 0;
 
@@ -284,7 +282,7 @@ namespace XAgentFramework
         public static List<RenderedHyperlink> DrawMarkdown(Graphics g, string text, Font baseFont, Color textColor, Rectangle bounds)
         {
             var renderedLinks = new List<RenderedHyperlink>();
-            var blocks = MiniMarkdownParser.Parse(text);
+            var blocks = MarkdownParser.Parse(text);
             int currentY = bounds.Y;
 
             foreach (var block in blocks)

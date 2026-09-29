@@ -217,9 +217,17 @@ namespace XAgentFramework
         private void Panel1_Paint(object? sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
             using Font font = new("Arial", 10, FontStyle.Bold);
             using Font font1 = new("Arial", 8);
+            using Font avatarFont = new("Arial", 9, FontStyle.Bold);
+
+            using StringFormat avatarFormat = new()
+            {
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center
+            };
 
             for (int i = 0; i < items.Count; i++)
             {
@@ -230,7 +238,8 @@ namespace XAgentFramework
                 }
 
                 Message? lastMessage = items[i].Messages.LastOrDefault();
-                string txtUsername = $"{items[i].Name}";
+                string name = items[i].Name ?? "";
+                string txtUsername = name;
                 string txtMessage = "No messages...";
                 bool isRead = true;
 
@@ -243,27 +252,49 @@ namespace XAgentFramework
                     txtMessage += "    " + lastMessage.Time.ToString("dd-MM-yyyy");
                 }
 
-                Point point = new(IMAGE_HEIGHT + 10, i * LABEL_HEIGHT + 5);
-                Point point1 = new(IMAGE_HEIGHT + 20, i * LABEL_HEIGHT + 25);
+                Brush textBrush;
+                Brush subTextBrush;
 
                 if (i == hoverIndex)
                 {
                     g.FillRectangle(Brushes.LightGray, rect);
-                    g.DrawString(txtUsername, font, Brushes.White, point);
-                    g.DrawString(txtMessage, font1, isRead ? Brushes.White : Brushes.Green, point1);
+                    textBrush = Brushes.White;
+                    subTextBrush = isRead ? Brushes.White : Brushes.Green;
                 }
                 else if (i == SelectedIndex)
                 {
                     g.FillRectangle(Brushes.DarkGray, rect);
-                    g.DrawString(txtUsername, font, Brushes.White, point);
-                    g.DrawString(txtMessage, font1, isRead ? Brushes.White : Brushes.Green, point1);
+                    textBrush = Brushes.White;
+                    subTextBrush = isRead ? Brushes.White : Brushes.Green;
                 }
                 else
                 {
                     g.FillRectangle(Brushes.White, rect);
-                    g.DrawString(txtUsername, font, Brushes.Black, point);
-                    g.DrawString(txtMessage, font1, isRead ? Brushes.DarkGray : Brushes.Green, point1);
+                    textBrush = Brushes.Black;
+                    subTextBrush = isRead ? Brushes.DarkGray : Brushes.Green;
                 }
+
+                int avatarPadding = 5;
+                int avatarSize = LABEL_HEIGHT - (avatarPadding * 2);
+                Rectangle avatarRect = new(avatarPadding, (i * LABEL_HEIGHT) + avatarPadding, avatarSize, avatarSize);
+
+                using (SolidBrush avatarBgBrush = new(Color.SteelBlue))
+                {
+                    g.FillEllipse(avatarBgBrush, avatarRect);
+                }
+
+                string initials = name.Length >= 2
+                    ? name.Substring(0, 2).ToUpper()
+                    : name.ToUpper();
+
+                g.DrawString(initials, avatarFont, Brushes.White, avatarRect, avatarFormat);
+
+                int textX = avatarRect.Right + 10;
+                Point point = new(textX, i * LABEL_HEIGHT + 5);
+                Point point1 = new(textX, i * LABEL_HEIGHT + 25);
+
+                g.DrawString(txtUsername, font, textBrush, point);
+                g.DrawString(txtMessage, font1, subTextBrush, point1);
             }
         }
 
