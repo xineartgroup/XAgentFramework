@@ -52,7 +52,7 @@
             txtPrompt.Location = new Point(41, 296);
             txtPrompt.Multiline = true;
             txtPrompt.Name = "txtPrompt";
-            txtPrompt.Size = new Size(325, 70);
+            txtPrompt.Size = new Size(299, 70);
             txtPrompt.TabIndex = 0;
             txtPrompt.KeyPress += TxtPrompt_KeyPress;
             // 
@@ -61,7 +61,7 @@
             btnSend.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             btnSend.FlatStyle = FlatStyle.Popup;
             btnSend.Image = Properties.Resources.send;
-            btnSend.Location = new Point(372, 296);
+            btnSend.Location = new Point(346, 296);
             btnSend.Name = "btnSend";
             btnSend.Size = new Size(70, 70);
             btnSend.TabIndex = 1;
@@ -86,7 +86,7 @@
             chatView1.BorderStyle = BorderStyle.Fixed3D;
             chatView1.Location = new Point(3, 3);
             chatView1.Name = "chatView1";
-            chatView1.Size = new Size(440, 264);
+            chatView1.Size = new Size(414, 264);
             chatView1.TabIndex = 4;
             // 
             // splitContainer1
@@ -98,6 +98,7 @@
             // splitContainer1.Panel1
             // 
             splitContainer1.Panel1.Controls.Add(chatList1);
+            splitContainer1.Panel1MinSize = 250;
             // 
             // splitContainer1.Panel2
             // 
@@ -107,8 +108,9 @@
             splitContainer1.Panel2.Controls.Add(chatView1);
             splitContainer1.Panel2.Controls.Add(txtPrompt);
             splitContainer1.Panel2.Controls.Add(btnSend);
+            splitContainer1.Panel2MinSize = 400;
             splitContainer1.Size = new Size(674, 369);
-            splitContainer1.SplitterDistance = 224;
+            splitContainer1.SplitterDistance = 250;
             splitContainer1.TabIndex = 5;
             // 
             // chatList1
@@ -119,7 +121,7 @@
             chatList1.Location = new Point(3, 3);
             chatList1.MinimumSize = new Size(200, 200);
             chatList1.Name = "chatList1";
-            chatList1.Size = new Size(218, 363);
+            chatList1.Size = new Size(244, 363);
             chatList1.TabIndex = 0;
             // 
             // lblAttachmentStatus
@@ -128,7 +130,7 @@
             lblAttachmentStatus.BorderStyle = BorderStyle.Fixed3D;
             lblAttachmentStatus.Location = new Point(3, 270);
             lblAttachmentStatus.Name = "lblAttachmentStatus";
-            lblAttachmentStatus.Size = new Size(439, 23);
+            lblAttachmentStatus.Size = new Size(413, 23);
             lblAttachmentStatus.TabIndex = 6;
             // 
             // btnCancelAttachment
@@ -187,6 +189,7 @@
             MinimumSize = new Size(450, 350);
             Name = "ChatForm";
             Text = "LLM Chat";
+            FormClosing += ChatForm_FormClosing;
             Load += Form1_Load;
             splitContainer1.Panel1.ResumeLayout(false);
             splitContainer1.Panel2.ResumeLayout(false);

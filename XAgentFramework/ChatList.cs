@@ -5,7 +5,6 @@ namespace XAgentFramework
     public partial class ChatList : UserControl
     {
         private int selectedIndex = -1;
-        private const int IMAGE_HEIGHT = 40;
         private const int LABEL_HEIGHT = 50;
         private int hoverIndex = -1;
         private readonly List<ChatItem> items = [];
@@ -214,6 +213,26 @@ namespace XAgentFramework
             }
         }
 
+        private void Panel1_DoubleClick(object sender, EventArgs e)
+        {
+            ChatItem? item = GetSelectedItem();
+            if (item == null)
+            {
+                return;
+            }
+            SettingsForm settingsForm = new()
+            {
+                SelectedItem = item,
+                StartPosition = FormStartPosition.CenterParent
+            };
+
+            if (settingsForm.ShowDialog() == DialogResult.OK)
+            {
+                SetSelectedItem(settingsForm.SelectedItem);
+                SettingsRequested?.Invoke(this, item);
+            }
+        }
+
         private void Panel1_Paint(object? sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
@@ -284,7 +303,7 @@ namespace XAgentFramework
                 }
 
                 string initials = name.Length >= 2
-                    ? name.Substring(0, 2).ToUpper()
+                    ? name[..2].ToUpper()
                     : name.ToUpper();
 
                 g.DrawString(initials, avatarFont, Brushes.White, avatarRect, avatarFormat);
@@ -456,6 +475,8 @@ namespace XAgentFramework
         public string GetSelectedText() => (SelectedIndex >= 0 && SelectedIndex < items.Count) ? items[SelectedIndex].Name : string.Empty;
 
         public ChatItem? GetSelectedItem() => (SelectedIndex >= 0 && SelectedIndex < items.Count) ? items[SelectedIndex] : null;
+
+        public List<ChatItem> GetAllItems() => [.. items];
 
         public int ItemCount() => items.Count;
     }

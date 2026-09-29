@@ -6,7 +6,7 @@ namespace XAgentFramework
     {
         private static readonly List<string> filePaths = [];
 
-        private static readonly string geminiAPIKey = GetAPIKey();
+        private static readonly string geminiAPIKey = GetGeminiAPIKey();
 
         private CancellationTokenSource? cts;
 
@@ -43,9 +43,41 @@ namespace XAgentFramework
             }
         }
 
-        private static string GetAPIKey()
+        private void LoadAgentChat(string fileName)
         {
-            return File.ReadAllText("gemini_api_key.txt");
+            ChatStorageService.LoadChatListItemAsync(fileName).ContinueWith(task =>
+            {
+                if (task.Exception != null)
+                {
+                    MessageBox.Show($"Error loading model configuration: {task.Exception.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                ChatItem chatItem = task.Result ?? new ChatItem();
+                List<Message> messages = chatItem.Messages;
+                string modelName = chatItem.Name;
+                string modelPrompt = chatItem.AgentInfo.SystemPrompt;
+                string baseUrl = chatItem.AgentInfo.URL;
+                int result = chatList1.AddItem(new ChatItem(modelName, baseUrl, geminiAPIKey, modelPrompt));
+                if (result < 0)
+                {
+                    MessageBox.Show($"Ensure that model '{modelName}' details are unique and correct.", "Failed to Add Model", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                else
+                {
+                    chatList1.SetSelectedMessages(messages);
+                    chatView1.RenderMessages(messages);
+
+                    ChatItem? selectedItem = chatList1.GetSelectedItem();
+                    selectedItem?.Client = new(baseUrl, geminiAPIKey, modelPrompt);
+                    selectedItem?.Client?.UpdateHistory(GetHistory(messages));
+                    chatList1.SetSelectedItem(selectedItem);
+                }
+            }, TaskScheduler.FromCurrentSynchronizationContext());
+        }
+
+        private static string GetGeminiAPIKey()
+        {
+            return File.ReadAllText("api_keys\\gemini_api_key.txt");
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -61,6 +93,12 @@ namespace XAgentFramework
             }
 
             cboModels.SelectedIndex = 0;
+
+            string[] agentFiles = Directory.GetFiles("agent_messages", "*.json");
+            foreach (string agentFile in agentFiles)
+            {
+                LoadAgentChat(agentFile);
+            }
 
             btnCancelAttachment.Enabled = false;
 
@@ -112,34 +150,7 @@ namespace XAgentFramework
             };
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                ChatStorageService.LoadChatListItemAsync(openFileDialog.FileName).ContinueWith(task =>
-                {
-                    if (task.Exception != null)
-                    {
-                        MessageBox.Show($"Error loading model configuration: {task.Exception.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-                    ChatItem chatItem = task.Result ?? new ChatItem();
-                    List<Message> messages = chatItem.Messages;
-                    string modelName = chatItem.Name;
-                    string modelPrompt = chatItem.AgentInfo.SystemPrompt;
-                    string baseUrl = chatItem.AgentInfo.URL;
-                    int result = chatList1.AddItem(new ChatItem(modelName, baseUrl, geminiAPIKey, modelPrompt));
-                    if (result < 0)
-                    {
-                        MessageBox.Show($"Ensure that model '{modelName}' details are unique and correct.", "Failed to Add Model", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                    else
-                    {
-                        chatList1.SetSelectedMessages(messages);
-                        chatView1.RenderMessages(messages);
-
-                        ChatItem? selectedItem = chatList1.GetSelectedItem();
-                        selectedItem?.Client = new(baseUrl, geminiAPIKey, modelPrompt);
-                        selectedItem?.Client?.UpdateHistory(GetHistory(messages));
-                        chatList1.SetSelectedItem(selectedItem);
-                    }
-                }, TaskScheduler.FromCurrentSynchronizationContext());
+                LoadAgentChat(openFileDialog.FileName);
             }
 
             lblStatus.Text = "Ready";
@@ -305,6 +316,17 @@ namespace XAgentFramework
             {
                 e.Handled = true;
                 BtnSend_Click(sender, EventArgs.Empty);
+            }
+        }
+
+        private void ChatForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            foreach (ChatItem item in chatList1.GetAllItems())
+            {
+                if (item != null)
+                {
+                    ChatStorageService.SaveChatListItemAsync(item, item.Name);
+                }
             }
         }
     }
