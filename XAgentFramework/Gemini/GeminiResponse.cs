@@ -1,4 +1,4 @@
-﻿namespace XAgentFramework
+﻿namespace XAgentFramework.Gemini
 {
     public class GeminiResponse
     {

@@ -1,7 +1,7 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace XAgentFramework
+namespace XAgentFramework.Gemini
 {
     public class GeminiClient : ILLMClient
     {

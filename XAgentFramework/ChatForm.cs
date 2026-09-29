@@ -1,5 +1,6 @@
 using System.Configuration;
 using System.Reflection;
+using System.Xml.Linq;
 
 namespace XAgentFramework
 {
@@ -13,6 +14,10 @@ namespace XAgentFramework
         {
             InitializeComponent();
             chatList1.SelectionChanged += ChatList1_SelectionChanged;
+            chatList1.SelectionHover += ChatList1_SelectionHover;
+            chatList1.SaveRequested += ChatList1_SaveRequested;
+            chatList1.UpdateRequested += ChatList1_ItemUpdated;
+            chatList1.DeleteRequested += ChatList1_ItemDeleted;
         }
 
         public static void ModelUrlMap()
@@ -185,17 +190,62 @@ namespace XAgentFramework
             return history;
         }
 
-        private void ChatList1_SelectionChanged(object? sender, ChatList.SelectionChangedEventArgs e)
+        private void ChatList1_SelectionChanged(object? sender, ChatList.ItemEventArgs e)
         {
-            if (e.Item != null)
+            if (e.NewItem != null)
             {
-                chatView1.RenderMessages(e.Item.Messages);
-                chatList1.SetSelectedMessages(e.Item.Messages);
+                chatView1.RenderMessages(e.NewItem.Messages);
+                chatList1.SetSelectedMessages(e.NewItem.Messages);
             }
             else
             {
                 chatView1.RenderMessages([]);
                 chatList1.SetSelectedMessages([]);
+            }
+        }
+
+        private void ChatList1_SelectionHover(object? sender, ChatList.ItemEventArgs e)
+        {
+            lblStatus.Text = e.NewItem != null ? $"[{e.NewItem.Name}]" : "Ready";
+        }
+
+        private void ChatList1_SaveRequested(object? sender, ChatList.ItemEventArgs e)
+        {
+            MessageBox.Show($"'{e.NewItem?.Name}' has been saved.", "Model Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void ChatList1_ItemUpdated(object? sender, ChatList.ItemEventArgs e)
+        {
+            //MessageBox.Show($"'{e.OldItem?.Name}' has been updated to '{e.NewItem?.Name}'.", "Model Updated", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            string oldFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "agent_messages", $"{e.OldItem?.Name}.json");
+            string newFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "agent_messages", $"{e.NewItem?.Name}.json");
+            if (File.Exists(oldFilePath))
+            {
+                try
+                {
+                    File.Move(oldFilePath, newFilePath);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to rename file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void ChatList1_ItemDeleted(object? sender, ChatList.ItemEventArgs e)
+        {
+            //MessageBox.Show($"'{e.NewItem?.Name}' has been deleted.", "Model Deleted", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "agent_messages", $"{e.NewItem?.Name}.json");
+            if (File.Exists(filePath))
+            {
+                try
+                {
+                    File.Delete(filePath);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to delete file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 

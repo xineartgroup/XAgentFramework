@@ -41,7 +41,7 @@
             panel1.Size = new Size(194, 294);
             panel1.TabIndex = 0;
             panel1.Paint += Panel1_Paint;
-            panel1.DoubleClick += Panel1_DoubleClick;
+            panel1.DoubleClick += SettingsMenuItem_Click;
             panel1.MouseClick += Panel1_MouseClick;
             panel1.MouseLeave += Panel1_MouseLeave;
             panel1.MouseMove += Panel1_MouseMove;

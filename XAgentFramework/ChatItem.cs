@@ -29,5 +29,12 @@ namespace XAgentFramework
             };
             Client = LLMClientFactory.GetClient(AgentInfo.Name, url, key, systemPrompt);
         }
+
+        public ChatItem(ChatItem? other)
+        {
+            Name = other?.Name ?? string.Empty;
+            AgentInfo = other?.AgentInfo ?? new AgentInfo();
+            Client = LLMClientFactory.GetClient(AgentInfo.Name, AgentInfo.URL, AgentInfo.Key, AgentInfo.SystemPrompt);
+        }
     }
 }

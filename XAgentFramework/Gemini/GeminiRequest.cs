@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace XAgentFramework
+namespace XAgentFramework.Gemini
 {
     public class GeminiRequest
     {

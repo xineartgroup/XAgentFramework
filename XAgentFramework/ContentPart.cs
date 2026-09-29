@@ -2,17 +2,17 @@
 
 namespace XAgentFramework
 {
-    public class Part
+    public class ContentPart
     {
+        [JsonPropertyName("type")]
+        public string Type { get; set; } = "text";
+
         [JsonPropertyName("text")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? Text { get; set; } = null;
+        public string? Text { get; set; }
 
-        [JsonPropertyName("inline_data")]
+        [JsonPropertyName("image_url")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public InlineData? InlineData { get; set; } = null;
-
-        [JsonIgnore]
-        public List<ContentPart>? ContentParts { get; set; }
+        public ImageUrl? ImageUrl { get; set; }
     }
 }

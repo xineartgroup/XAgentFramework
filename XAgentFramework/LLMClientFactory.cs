@@ -1,6 +1,4 @@
-﻿using System.Buffers.Text;
-
-namespace XAgentFramework
+﻿namespace XAgentFramework
 {
     public static class LLMClientFactory
     {
@@ -18,11 +16,11 @@ namespace XAgentFramework
             string groupName = nameKeys.TryGetValue(name, out string? value) ? value : "";
             if (groupName == "gemini_api_key")
             {
-                return new GeminiClient(baseUrl, key, modelPrompt);
+                return new Gemini.GeminiClient(baseUrl, key, modelPrompt);
             }
             else if (groupName == "groq_api_key")
             {
-                return new GroqClient(baseUrl, key, modelPrompt, name);
+                return new Groq.GroqClient(baseUrl, key, modelPrompt, name);
             }
             else
             {
