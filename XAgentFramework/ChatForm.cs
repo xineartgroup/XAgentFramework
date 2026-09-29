@@ -1,12 +1,11 @@
 using System.Configuration;
+using System.Reflection;
 
 namespace XAgentFramework
 {
     public partial class ChatForm : Form
     {
         private static readonly List<string> filePaths = [];
-
-        private static readonly string geminiAPIKey = GetGeminiAPIKey();
 
         private CancellationTokenSource? cts;
 
@@ -29,16 +28,23 @@ namespace XAgentFramework
                 if (nameKey != null)
                 {
                     string urlKey = nameKey.Replace(":Name", ":Url");
+                    string groupKey = nameKey.Replace(":Name", ":Group");
                     string url = ConfigurationManager.AppSettings[urlKey] ?? "";
+                    string groupName = ConfigurationManager.AppSettings[groupKey] ?? "";
+                    string key = GetAPIKey(groupName);
 
                     if (!string.IsNullOrEmpty(modelName) && !string.IsNullOrEmpty(url))
                     {
                         AgentInfo agentInfo = new()
                         {
-                            URL = url
+                            Name = modelName,
+                            URL = url,
+                            Key = key,
                         };
-                        SettingsForm.ModelMap[modelName] = agentInfo;
+                        LLMClientFactory.ModelMap[modelName] = agentInfo;
                     }
+
+                    LLMClientFactory.AddNameKey(modelName, groupName);
                 }
             }
         }
@@ -57,7 +63,7 @@ namespace XAgentFramework
                 string modelName = chatItem.Name;
                 string modelPrompt = chatItem.AgentInfo.SystemPrompt;
                 string baseUrl = chatItem.AgentInfo.URL;
-                int result = chatList1.AddItem(new ChatItem(modelName, baseUrl, geminiAPIKey, modelPrompt));
+                int result = chatList1.AddItem(new ChatItem(modelName, chatItem.AgentInfo.Name, baseUrl, chatItem.AgentInfo.Key, modelPrompt));
                 if (result < 0)
                 {
                     MessageBox.Show($"Ensure that model '{modelName}' details are unique and correct.", "Failed to Add Model", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -68,16 +74,20 @@ namespace XAgentFramework
                     chatView1.RenderMessages(messages);
 
                     ChatItem? selectedItem = chatList1.GetSelectedItem();
-                    selectedItem?.Client = new(baseUrl, geminiAPIKey, modelPrompt);
+                    selectedItem?.Client = LLMClientFactory.GetClient(chatItem.AgentInfo.Name, baseUrl, chatItem.AgentInfo.Key, modelPrompt);
                     selectedItem?.Client?.UpdateHistory(GetHistory(messages));
                     chatList1.SetSelectedItem(selectedItem);
                 }
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
-        private static string GetGeminiAPIKey()
+        private static string GetAPIKey(string apiGroup)
         {
-            return File.ReadAllText("api_keys\\gemini_api_key.txt");
+            if (!File.Exists($"api_keys\\{apiGroup}.txt"))
+            {
+                return string.Empty;
+            }
+            return File.ReadAllText($"api_keys\\{apiGroup}.txt");
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -87,7 +97,7 @@ namespace XAgentFramework
             ModelUrlMap();
 
             cboModels.Items.Add("<-- Select an Agent -->");
-            foreach (var kvp in SettingsForm.ModelMap)
+            foreach (var kvp in LLMClientFactory.ModelMap)
             {
                 cboModels.Items.Add(kvp.Key);
             }
@@ -109,7 +119,7 @@ namespace XAgentFramework
         {
             if (cboModels.SelectedIndex > 0 && cboModels.Items.Count > cboModels.SelectedIndex && cboModels.Items[cboModels.SelectedIndex] is string baseName)
             {
-                string baseUrl = SettingsForm.ModelMap.TryGetValue(baseName, out AgentInfo? value) ? value.URL : string.Empty;
+                string baseUrl = LLMClientFactory.ModelMap.TryGetValue(baseName, out AgentInfo? value) ? value.URL : string.Empty;
                 NameForm nameForm = new()
                 {
                     StartPosition = FormStartPosition.CenterParent,
@@ -117,22 +127,26 @@ namespace XAgentFramework
                 };
                 if (nameForm.ShowDialog() == DialogResult.OK)
                 {
-                    string modelName = nameForm.ModelName;
-                    string modelPrompt = nameForm.ModelPrompt;
-                    GeminiClient? client = new(baseUrl, geminiAPIKey, modelPrompt);
-
-                    if (client != null)
+                    AgentInfo? agentInfo = LLMClientFactory.ModelMap.TryGetValue(baseName, out AgentInfo? val) ? val : null;
+                    if (agentInfo != null)
                     {
-                        int result = chatList1.AddItem(new ChatItem(modelName, baseUrl, geminiAPIKey, modelPrompt));
-                        if (result >= 0)
+                        string modelName = nameForm.ModelName;
+                        string modelPrompt = nameForm.ModelPrompt;
+                        ILLMClient? client = LLMClientFactory.GetClient(agentInfo.Name, baseUrl, agentInfo.Key, modelPrompt);
+
+                        if (client != null)
                         {
-                            chatList1.SetText(modelName);
+                            int result = chatList1.AddItem(new ChatItem(modelName, agentInfo.Name, baseUrl, agentInfo.Key, modelPrompt));
+                            if (result >= 0)
+                            {
+                                chatList1.SetText(modelName);
+                            }
+                            else
+                            {
+                                MessageBox.Show($"Ensure that model '{modelName}' details are unique and correct.", "Failed to Add Model", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            }
+                            chatView1.RenderMessages([]);
                         }
-                        else
-                        {
-                            MessageBox.Show($"Ensure that model '{modelName}' details are unique and correct.", "Failed to Add Model", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        }
-                        chatView1.RenderMessages([]);
                     }
                 }
                 cboModels.SelectedIndex = 0;
@@ -226,7 +240,7 @@ namespace XAgentFramework
             else if (!string.IsNullOrWhiteSpace(txtPrompt.Text) || filePaths.Count > 0)
             {
                 ChatItem? chatItem = chatList1.GetSelectedItem();
-                GeminiClient? client = chatItem?.Client;
+                ILLMClient? client = chatItem?.Client;
 
                 if (client != null)
                 {
@@ -325,7 +339,7 @@ namespace XAgentFramework
             {
                 if (item != null)
                 {
-                    ChatStorageService.SaveChatListItemAsync(item, item.Name);
+                    ChatStorageService.SaveChatListItemAsync(item, $"agent_messages\\{item.Name}.json");
                 }
             }
         }

@@ -11,5 +11,8 @@ namespace XAgentFramework
         [JsonPropertyName("inline_data")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public InlineData? InlineData { get; set; } = null;
+
+        [JsonIgnore]
+        public List<GroqContentPart>? ContentParts { get; set; }
     }
 }

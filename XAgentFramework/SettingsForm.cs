@@ -2,8 +2,6 @@
 {
     public partial class SettingsForm : Form
     {
-        public static readonly Dictionary<string, AgentInfo> ModelMap = [];
-
         public ChatItem? SelectedItem = null;
 
         public SettingsForm()
@@ -18,7 +16,7 @@
                 int index = 0;
                 int selectedIndex = -1;
 
-                foreach (var kvp in ModelMap)
+                foreach (var kvp in LLMClientFactory.ModelMap)
                 {
                     cboModels.Items.Add(kvp.Key);
                     if (SelectedItem.AgentInfo.URL == kvp.Value.URL)
@@ -40,7 +38,7 @@
             {
                 SelectedItem.Name = textBoxName.Text;
                 SelectedItem.AgentInfo.SystemPrompt = textBoxPrompt.Text + GetOrchestratorPrompt();
-                SelectedItem.AgentInfo.URL = ModelMap[cboModels.SelectedItem?.ToString() ?? ""].URL;
+                SelectedItem.AgentInfo.URL = LLMClientFactory.ModelMap[cboModels.SelectedItem?.ToString() ?? ""].URL;
             }
             DialogResult = DialogResult.OK;
             Close();
@@ -56,7 +54,7 @@
                     "\r\nIf so, write a prompt for the tools, in the format:";
 
                 int i = 1;
-                foreach (KeyValuePair<string, AgentInfo> kvp in ModelMap)
+                foreach (KeyValuePair<string, AgentInfo> kvp in LLMClientFactory.ModelMap)
                 {
                     prompt += $"\r\n[{kvp.Key}]: [prompt{i++}]";
                 }
