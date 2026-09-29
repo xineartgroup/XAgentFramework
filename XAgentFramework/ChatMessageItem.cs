@@ -24,6 +24,8 @@ namespace XAgentFramework
         public event EventHandler<Message>? DeleteRequested;
         public event EventHandler<Message>? SaveRequested;
 
+        private List<RenderedHyperlink> _renderedLinks = [];
+
         public ChatMessageItem(Message message, List<Attachment> attachments)
         {
             _message = message;
@@ -216,12 +218,27 @@ namespace XAgentFramework
                 if (!string.IsNullOrWhiteSpace(_message.Content) && !_message.Content.StartsWith("[Attachment:"))
                 {
                     Rectangle textRect = new(SPACINGX + x, currentY, maxAvailableWidth, contentHeight - (currentY - contentStartY));
-                    g.DrawString(_message.Content, fontContent, Brushes.Black, textRect);
+                    MiniMarkdownRenderer.DrawMarkdown(g, _message.Content, fontContent, Color.Black, textRect);
                 }
             }
             else
             {
-                g.DrawString(_message.Content, fontContent, Brushes.Black, rectContent);
+                MiniMarkdownRenderer.DrawMarkdown(g, _message.Content, fontContent, Color.Black, rectContent);
+            }
+        }
+
+        protected override void OnMouseClick(MouseEventArgs e)
+        {
+            base.OnMouseClick(e);
+
+            string? clickedUrl = MiniMarkdownRenderer.GetClickedUrl(_renderedLinks, e.Location);
+            if (!string.IsNullOrEmpty(clickedUrl))
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = clickedUrl,
+                    UseShellExecute = true
+                });
             }
         }
 
@@ -235,7 +252,7 @@ namespace XAgentFramework
             using Font fontTime = new("Arial", 8);
 
             int maxContentWidth = totalAvailableWidth - (6 * SPACINGX);
-            SizeF fontContentSize = g.MeasureString(_message.Content, fontContent, maxContentWidth);
+            Size fontContentSize = MiniMarkdownRenderer.MeasureMarkdown(g, _message.Content, fontContent, maxContentWidth);
             SizeF fontSenderSize = g.MeasureString(sender, fontSender);
             SizeF fontTimeSize = g.MeasureString(txtTime, fontTime);
 
