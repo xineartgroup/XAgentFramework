@@ -4,9 +4,9 @@
     {
         private static readonly Dictionary<string, string> nameKeys = [];
 
-        public static readonly Dictionary<string, AgentInfo> AgentsModelMap = [];
+        public static readonly Dictionary<string, AgentInfo> ModelsMap = [];
 
-        public static readonly Dictionary<string, string> AgentsNameMap = [];
+        public static readonly Dictionary<string, AgentInfo> AgentsMap = [];
 
         public static void AddNameKey(string name, string key)
         {

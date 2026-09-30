@@ -47,7 +47,7 @@ namespace XAgentFramework
                             URL = url,
                             Key = key,
                         };
-                        LLMClientFactory.AgentsModelMap[agentName] = agentInfo;
+                        LLMClientFactory.ModelsMap[agentName] = agentInfo;
                     }
 
                     LLMClientFactory.AddNameKey(agentName, groupName);
@@ -107,7 +107,7 @@ namespace XAgentFramework
                     ChatItem? item = chatList1.GetAllItems()[result];
                     item.Client = LLMClientFactory.GetClient(chatItem.AgentInfo.Name, baseUrl, chatItem.AgentInfo.Key, agentPrompt);
                     item.Client?.UpdateHistory(GetHistory(messages));
-                    LLMClientFactory.AgentsNameMap.Add(agentName, chatItem.AgentInfo.Name);
+                    LLMClientFactory.AgentsMap.Add(agentName, chatItem.AgentInfo);
                 }
             }
 
@@ -138,7 +138,7 @@ namespace XAgentFramework
             AgentUrlMap();
 
             cboAgents.Items.Add("<-- Select an Agent -->");
-            foreach (var kvp in LLMClientFactory.AgentsModelMap)
+            foreach (var kvp in LLMClientFactory.ModelsMap)
             {
                 cboAgents.Items.Add(kvp.Key);
             }
@@ -156,7 +156,7 @@ namespace XAgentFramework
         {
             if (cboAgents.SelectedIndex > 0 && cboAgents.Items.Count > cboAgents.SelectedIndex && cboAgents.Items[cboAgents.SelectedIndex] is string baseName)
             {
-                string baseUrl = LLMClientFactory.AgentsModelMap.TryGetValue(baseName, out AgentInfo? value) ? value.URL : string.Empty;
+                string baseUrl = LLMClientFactory.ModelsMap.TryGetValue(baseName, out AgentInfo? value) ? value.URL : string.Empty;
                 NameForm nameForm = new()
                 {
                     StartPosition = FormStartPosition.CenterParent,
@@ -164,7 +164,7 @@ namespace XAgentFramework
                 };
                 if (nameForm.ShowDialog() == DialogResult.OK)
                 {
-                    AgentInfo? agentInfo = LLMClientFactory.AgentsModelMap.TryGetValue(baseName, out AgentInfo? val) ? val : null;
+                    AgentInfo? agentInfo = LLMClientFactory.ModelsMap.TryGetValue(baseName, out AgentInfo? val) ? val : null;
                     if (agentInfo != null)
                     {
                         string agentName = nameForm.AgentName;
@@ -177,7 +177,7 @@ namespace XAgentFramework
                             if (result >= 0)
                             {
                                 chatList1.SetText(agentName);
-                                LLMClientFactory.AgentsNameMap.Add(agentName, agentInfo.Name);
+                                LLMClientFactory.AgentsMap.Add(agentName, agentInfo);
                             }
                             else
                             {
@@ -228,7 +228,14 @@ namespace XAgentFramework
                         selectedItem?.Client = LLMClientFactory.GetClient(chatItem.AgentInfo.Name, baseUrl, chatItem.AgentInfo.Key, agentPrompt);
                         selectedItem?.Client?.UpdateHistory(GetHistory(messages));
                         chatList1.SetSelectedItem(selectedItem);
-                        LLMClientFactory.AgentsNameMap.Add(agentName, chatItem.AgentInfo.Name);
+                        if (LLMClientFactory.AgentsMap.ContainsKey(agentName))
+                        {
+                            LLMClientFactory.AgentsMap[agentName] = chatItem.AgentInfo;
+                        }
+                        else
+                        {
+                            LLMClientFactory.AgentsMap.Add(agentName, chatItem.AgentInfo);
+                        }
                     }
                 }, TaskScheduler.FromCurrentSynchronizationContext());
             }
@@ -273,7 +280,7 @@ namespace XAgentFramework
 
         private void ChatList1_SaveRequested(object? sender, ChatItemEventArgs e)
         {
-            MessageBox.Show($"'{e.NewItem?.Name}' has been saved.", "Agent Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            lblStatus.Text = $"'{e.NewItem?.Name}' has been saved.";
         }
 
         private void ChatList1_ItemUpdated(object? sender, ChatItemEventArgs e)
@@ -285,6 +292,7 @@ namespace XAgentFramework
                 try
                 {
                     File.Move(oldFilePath, newFilePath);
+                    lblStatus.Text = $"'{e.OldItem?.Name}' has been renamed to '{e.NewItem?.Name}'.";
                 }
                 catch (Exception ex)
                 {
@@ -301,6 +309,7 @@ namespace XAgentFramework
                 try
                 {
                     File.Delete(filePath);
+                    lblStatus.Text = $"'{e.OldItem?.Name}' has been deleted.";
                 }
                 catch (Exception ex)
                 {
@@ -451,12 +460,22 @@ namespace XAgentFramework
             }
         }
 
+        private void TxtSearch_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == (char)Keys.Enter)
+            {
+                e.Handled = true;
+                BtnSearch_Click(sender, EventArgs.Empty);
+            }
+        }
+
         private void BtnSearch_Click(object sender, EventArgs e)
         {
             ChatItem? foundItem = chatList1.SearchItem(txtSearch.Text);
             if (foundItem != null)
             {
                 chatList1.SelectItem(foundItem);
+                txtSearch.Text = "";
             }
         }
 
@@ -504,7 +523,7 @@ namespace XAgentFramework
                         }
                         catch
                         {
-                            
+
                         }
                     }
                 }

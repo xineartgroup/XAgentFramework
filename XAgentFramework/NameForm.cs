@@ -68,7 +68,7 @@
                 MessageBox.Show("Agent name cannot contain \\ or / and must be between 3 and 50 characters long.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            if (LLMClientFactory.AgentsNameMap.ContainsKey(textBoxName.Text))
+            if (LLMClientFactory.AgentsMap.ContainsKey(textBoxName.Text))
             {
                 MessageBox.Show("Agent name already exists. Please choose a different name.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;

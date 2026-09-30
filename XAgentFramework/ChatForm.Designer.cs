@@ -75,9 +75,9 @@
             cboAgents.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             cboAgents.DropDownStyle = ComboBoxStyle.DropDownList;
             cboAgents.FormattingEnabled = true;
-            cboAgents.Location = new Point(271, 12);
+            cboAgents.Location = new Point(309, 12);
             cboAgents.Name = "cboAgents";
-            cboAgents.Size = new Size(288, 23);
+            cboAgents.Size = new Size(250, 23);
             cboAgents.TabIndex = 3;
             cboAgents.SelectedIndexChanged += CboAgents_SelectedIndexChanged;
             // 
@@ -186,6 +186,7 @@
             txtSearch.Name = "txtSearch";
             txtSearch.Size = new Size(171, 23);
             txtSearch.TabIndex = 8;
+            txtSearch.KeyPress += TxtSearch_KeyPress;
             // 
             // btnSearch
             // 

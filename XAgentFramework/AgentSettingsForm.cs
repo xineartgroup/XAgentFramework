@@ -16,7 +16,7 @@
                 int index = 0;
                 int selectedIndex = -1;
 
-                foreach (var kvp in LLMClientFactory.AgentsModelMap)
+                foreach (var kvp in LLMClientFactory.ModelsMap)
                 {
                     cboModels.Items.Add(kvp.Key);
                     if (SelectedItem.AgentInfo.URL == kvp.Value.URL)
@@ -36,12 +36,19 @@
         {
             if (SelectedItem != null)
             {
+                var agentInfo = LLMClientFactory.ModelsMap[cboModels.SelectedItem?.ToString() ?? ""];
                 SelectedItem.Name = textBoxName.Text;
                 SelectedItem.AgentInfo.SystemPrompt = textBoxPrompt.Text + GetOrchestratorPrompt();
                 SelectedItem.AgentInfo.Name = cboModels.SelectedItem?.ToString() ?? "";
-                var agentInfo = LLMClientFactory.AgentsModelMap[cboModels.SelectedItem?.ToString() ?? ""];
                 SelectedItem.AgentInfo.URL = agentInfo.URL;
                 SelectedItem.AgentInfo.Key = agentInfo.Key;
+                for (int i = 0; i < SelectedItem.Messages.Count; i++)
+                {
+                    if (SelectedItem.Messages[i].Sender != SelectedItem.Name && !SelectedItem.Messages[i].Sender.Equals("me", StringComparison.CurrentCultureIgnoreCase))
+                    {
+                        SelectedItem.Messages[i].Sender = SelectedItem.Name;
+                    }
+                }
             }
             DialogResult = DialogResult.OK;
             Close();
@@ -57,9 +64,24 @@
                     "\r\nIf so, write a prompt for the tools, in the format:";
 
                 int i = 1;
-                foreach (KeyValuePair<string, AgentInfo> kvp in LLMClientFactory.AgentsModelMap)
+                foreach (KeyValuePair<string, AgentInfo> kvp in LLMClientFactory.ModelsMap)
                 {
-                    prompt += $"\r\n[{kvp.Key}]: [prompt{i++}]";
+                    prompt += $"\r\n  [{kvp.Key}]: [prompt{i++}]";
+                }
+
+                prompt += "\r\n\r\nIf you don't need to use a tool, just answer the question directly." +
+                    "\r\nIf you do need to use a tool, write the prompt for the tool in the format above." +
+                    "\r\nAfter you have written the prompt for the tool, wait for the response from the tool." +
+                    "\r\nOnce you have received the response from the tool, you can continue to answer the question." +
+                    "\r\nIf you need to use another tool, repeat the process above." +
+                    "\r\nIf you have completed the task, write your final answer in the format:" +
+                    "\r\n[Final Answer]: [your answer]" +
+                    "\r\nHere are the list of available tools and what they can do based on their system prompt";
+
+                i = 1;
+                foreach (KeyValuePair<string, AgentInfo> kvp in LLMClientFactory.AgentsMap)
+                {
+                    prompt += $"\r\n  {kvp.Key}: {kvp.Value.SystemPrompt}";
                 }
 
                 return prompt;

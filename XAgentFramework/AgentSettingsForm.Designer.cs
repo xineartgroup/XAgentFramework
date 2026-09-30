@@ -64,6 +64,7 @@
             textBoxPrompt.Location = new Point(109, 70);
             textBoxPrompt.Multiline = true;
             textBoxPrompt.Name = "textBoxPrompt";
+            textBoxPrompt.ScrollBars = ScrollBars.Vertical;
             textBoxPrompt.Size = new Size(259, 97);
             textBoxPrompt.TabIndex = 2;
             // 
@@ -120,7 +121,7 @@
             chkOrchestrator.Text = "Orchestrator Agent";
             chkOrchestrator.UseVisualStyleBackColor = true;
             // 
-            // SettingsForm
+            // AgentSettingsForm
             // 
             AcceptButton = btnOK;
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -137,7 +138,7 @@
             Controls.Add(textBoxPrompt);
             Controls.Add(textBoxName);
             FormBorderStyle = FormBorderStyle.FixedToolWindow;
-            Name = "SettingsForm";
+            Name = "AgentSettingsForm";
             Text = "Settings";
             Load += SettingsForm_Load;
             ResumeLayout(false);
