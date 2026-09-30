@@ -1,7 +1,4 @@
-﻿using System.ComponentModel;
-using System.Net.Mail;
-
-namespace XAgentFramework
+﻿namespace XAgentFramework
 {
     public partial class ChatView : UserControl
     {
@@ -9,7 +6,7 @@ namespace XAgentFramework
         private readonly Panel messagesContainer = new();
         private List<Message> _currentMessages = [];
 
-        //public event EventHandler? SelectionChangeEvent;
+        public event EventHandler<ChatMessageEventArgs>? DeleteRequested = null;
 
         public ChatView()
         {
@@ -85,6 +82,7 @@ namespace XAgentFramework
             if (_currentMessages == null) return;
             _currentMessages.Remove(message);
             RenderMessages(_currentMessages);
+            DeleteRequested?.Invoke(this, new ChatMessageEventArgs(message, _currentMessages));
         }
 
         private static List<Attachment> GetAttachments(Message message)

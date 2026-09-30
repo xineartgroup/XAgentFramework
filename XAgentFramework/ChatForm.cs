@@ -1,3 +1,4 @@
+using System.Buffers.Text;
 using System.Configuration;
 using System.Reflection;
 
@@ -17,6 +18,7 @@ namespace XAgentFramework
             chatList1.SaveRequested += ChatList1_SaveRequested;
             chatList1.UpdateRequested += ChatList1_ItemUpdated;
             chatList1.DeleteRequested += ChatList1_ItemDeleted;
+            chatView1.DeleteRequested += ChatView1_DeleteRequested;
         }
 
         public static void AgentUrlMap()
@@ -249,12 +251,13 @@ namespace XAgentFramework
             return history;
         }
 
-        private void ChatList1_SelectionChanged(object? sender, ChatList.ItemEventArgs e)
+        private void ChatList1_SelectionChanged(object? sender, ChatItemEventArgs e)
         {
             if (e.NewItem != null)
             {
                 chatView1.RenderMessages(e.NewItem.Messages);
                 chatList1.SetSelectedMessages(e.NewItem.Messages);
+                Text = $"LLM Chat - {e.NewItem.Name}";
             }
             else
             {
@@ -263,17 +266,17 @@ namespace XAgentFramework
             }
         }
 
-        private void ChatList1_SelectionHover(object? sender, ChatList.ItemEventArgs e)
+        private void ChatList1_SelectionHover(object? sender, ChatItemEventArgs e)
         {
             lblStatus.Text = e.NewItem != null ? $"[{e.NewItem.Name}]" : "Ready";
         }
 
-        private void ChatList1_SaveRequested(object? sender, ChatList.ItemEventArgs e)
+        private void ChatList1_SaveRequested(object? sender, ChatItemEventArgs e)
         {
             MessageBox.Show($"'{e.NewItem?.Name}' has been saved.", "Agent Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        private void ChatList1_ItemUpdated(object? sender, ChatList.ItemEventArgs e)
+        private void ChatList1_ItemUpdated(object? sender, ChatItemEventArgs e)
         {
             string oldFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "agent_messages", $"{e.OldItem?.Name}.json");
             string newFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "agent_messages", $"{e.NewItem?.Name}.json");
@@ -290,7 +293,7 @@ namespace XAgentFramework
             }
         }
 
-        private void ChatList1_ItemDeleted(object? sender, ChatList.ItemEventArgs e)
+        private void ChatList1_ItemDeleted(object? sender, ChatItemEventArgs e)
         {
             string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "agent_messages", $"{e.NewItem?.Name}.json");
             if (File.Exists(filePath))
@@ -304,6 +307,14 @@ namespace XAgentFramework
                     MessageBox.Show($"Failed to delete file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+        }
+
+        private void ChatView1_DeleteRequested(object? sender, ChatMessageEventArgs e)
+        {
+            MessageBox.Show($"Message '{e.DeletedMessage?.Content}' has been deleted.", "Message Deleted", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            ChatItem? item = chatList1.GetSelectedItem();
+            item?.Client?.UpdateHistory(GetHistory(e.CurrentMessages));
         }
 
         private void BtnAttach_Click(object sender, EventArgs e)
@@ -440,18 +451,30 @@ namespace XAgentFramework
             }
         }
 
+        private void BtnSearch_Click(object sender, EventArgs e)
+        {
+            ChatItem? foundItem = chatList1.SearchItem(txtSearch.Text);
+            if (foundItem != null)
+            {
+                chatList1.SelectItem(foundItem);
+            }
+        }
+
         private async void ChatForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             e.Cancel = true;
 
             try
             {
-                string targetDir = Path.Combine(Directory.GetCurrentDirectory(), "agent_messages");
+                string currentDir = Directory.GetCurrentDirectory();
+                string targetDir = Path.Combine(currentDir, "agent_messages");
                 Directory.CreateDirectory(targetDir);
 
                 List<ChatItem> items = chatList1.GetAllItems();
                 List<string> manifestLines = [];
                 List<Task> saveTasks = [];
+
+                HashSet<string> expectedFiles = new(StringComparer.OrdinalIgnoreCase);
 
                 foreach (ChatItem item in items)
                 {
@@ -459,7 +482,9 @@ namespace XAgentFramework
                         continue;
 
                     string relativePath = Path.Combine("agent_messages", $"{item.Name}.json");
-                    string fullPath = Path.Combine(Directory.GetCurrentDirectory(), relativePath);
+                    string fullPath = Path.Combine(currentDir, relativePath);
+
+                    expectedFiles.Add($"{item.Name}.json");
 
                     saveTasks.Add(ChatStorageService.SaveChatListItemAsync(item, fullPath));
                     manifestLines.Add(relativePath);
@@ -467,12 +492,29 @@ namespace XAgentFramework
 
                 await Task.WhenAll(saveTasks);
 
-                string manifestPath = Path.Combine(Directory.GetCurrentDirectory(), "agent_manifest.txt");
+                foreach (string existingFile in Directory.EnumerateFiles(targetDir))
+                {
+                    string fileName = Path.GetFileName(existingFile);
+
+                    if (!expectedFiles.Contains(fileName))
+                    {
+                        try
+                        {
+                            File.Delete(existingFile);
+                        }
+                        catch
+                        {
+                            
+                        }
+                    }
+                }
+
+                string manifestPath = Path.Combine(currentDir, "agent_manifest.txt");
                 await File.WriteAllLinesAsync(manifestPath, manifestLines);
             }
             catch
             {
-                // Ignore or handle exceptions quietly as required
+
             }
             finally
             {

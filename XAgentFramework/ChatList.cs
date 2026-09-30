@@ -29,28 +29,21 @@ namespace XAgentFramework
                     selectedIndex = value;
                     ChatItem? newItem = selectedIndex >= 0 && selectedIndex < items.Count ? items[selectedIndex] : null;
 
-                    SelectionChanged?.Invoke(this, new ItemEventArgs(oldItem, newItem));
+                    SelectionChanged?.Invoke(this, new ChatItemEventArgs(oldItem, newItem));
                     panel1.Invalidate();
                 }
             }
         }
 
-        public event EventHandler<ItemEventArgs>? SelectionHover = null;
+        public event EventHandler<ChatItemEventArgs>? SelectionHover = null;
 
-        public event EventHandler<ItemEventArgs>? SelectionChanged = null;
+        public event EventHandler<ChatItemEventArgs>? SelectionChanged = null;
 
-        public event EventHandler<ItemEventArgs>? SaveRequested = null;
+        public event EventHandler<ChatItemEventArgs>? SaveRequested = null;
 
-        public event EventHandler<ItemEventArgs>? UpdateRequested = null;
+        public event EventHandler<ChatItemEventArgs>? UpdateRequested = null;
 
-        public event EventHandler<ItemEventArgs>? DeleteRequested = null;
-
-        public class ItemEventArgs(ChatItem? oldItem, ChatItem? newItem) : EventArgs
-        {
-            public ChatItem? OldItem { get; } = oldItem;
-
-            public ChatItem? NewItem { get; } = newItem;
-        }
+        public event EventHandler<ChatItemEventArgs>? DeleteRequested = null;
 
         public ChatList()
         {
@@ -58,12 +51,10 @@ namespace XAgentFramework
 
             InitializeContextMenu();
 
-            // Double buffer panel1 to eliminate flickers during paint/scroll
             typeof(Panel).InvokeMember("DoubleBuffered",
                 System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
                 null, panel1, [true]);
 
-            // Re-adjust panel widths when resized
             panelContainer.Resize += (s, e) =>
             {
                 panel1.Width = panelContainer.ClientSize.Width;
@@ -120,7 +111,7 @@ namespace XAgentFramework
             if (GetSelectedItem() is { } item)
             {
                 await SaveItem(item);
-                SaveRequested?.Invoke(this, new ItemEventArgs(null, item));
+                SaveRequested?.Invoke(this, new ChatItemEventArgs(null, item));
             }
         }
 
@@ -130,7 +121,7 @@ namespace XAgentFramework
             {
                 if (SelectedIndex >= 0 && GetSelectedItem() is { } item)
                 {
-                    DeleteRequested?.Invoke(this, new ItemEventArgs(item, null));
+                    DeleteRequested?.Invoke(this, new ChatItemEventArgs(item, null));
                     RemoveAt(SelectedIndex);
                 }
             }
@@ -150,7 +141,7 @@ namespace XAgentFramework
                 if (settingsForm.ShowDialog() == DialogResult.OK)
                 {
                     SetSelectedItem(settingsForm.SelectedItem);
-                    UpdateRequested?.Invoke(this, new ItemEventArgs(oldItem, settingsForm.SelectedItem));
+                    UpdateRequested?.Invoke(this, new ChatItemEventArgs(oldItem, settingsForm.SelectedItem));
                 }
             }
         }
@@ -175,7 +166,7 @@ namespace XAgentFramework
                     {
                         ChatItem? oldItem = hoverIndex >= 0 && hoverIndex < items.Count ? items[hoverIndex] : null;
                         hoverIndex = i;
-                        SelectionHover?.Invoke(this, new ItemEventArgs(oldItem, items[i]));
+                        SelectionHover?.Invoke(this, new ChatItemEventArgs(oldItem, items[i]));
                         panel1.Invalidate();
                     }
                     break;
@@ -186,7 +177,7 @@ namespace XAgentFramework
             {
                 ChatItem? oldItem = items[hoverIndex];
                 hoverIndex = -1;
-                SelectionHover?.Invoke(this, new ItemEventArgs(oldItem, null));
+                SelectionHover?.Invoke(this, new ChatItemEventArgs(oldItem, null));
                 panel1.Invalidate();
             }
         }
@@ -403,15 +394,6 @@ namespace XAgentFramework
             }
         }
 
-        public void EnsureVisible(int index)
-        {
-            if (index >= 0 && index < items.Count)
-            {
-                int itemTop = index * LABEL_HEIGHT;
-                panelContainer.AutoScrollPosition = new Point(0, itemTop);
-            }
-        }
-
         public void SetText(string text)
         {
             if (text != GetSelectedText())
@@ -454,11 +436,22 @@ namespace XAgentFramework
             }
         }
 
+        public void EnsureVisible(int index)
+        {
+            if (index >= 0 && index < items.Count)
+            {
+                int itemTop = index * LABEL_HEIGHT;
+                panelContainer.AutoScrollPosition = new Point(0, itemTop);
+            }
+        }
+
         public string GetText(int index) => (index >= 0 && index < items.Count) ? items[index].Name : string.Empty;
 
         public string GetSelectedText() => (SelectedIndex >= 0 && SelectedIndex < items.Count) ? items[SelectedIndex].Name : string.Empty;
 
         public ChatItem? GetSelectedItem() => (SelectedIndex >= 0 && SelectedIndex < items.Count) ? items[SelectedIndex] : null;
+
+        public ChatItem? SearchItem(string name) => items.FirstOrDefault(item => item.Name.Contains(name, StringComparison.CurrentCultureIgnoreCase));
 
         public List<ChatItem> GetAllItems() => [.. items];
 

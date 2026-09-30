@@ -39,6 +39,8 @@
             btnAttach = new Button();
             lblStatus = new Label();
             btnLoadFromFile = new Button();
+            txtSearch = new TextBox();
+            btnSearch = new Button();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
@@ -68,14 +70,14 @@
             btnSend.UseVisualStyleBackColor = true;
             btnSend.Click += BtnSend_Click;
             // 
-            // cboModels
+            // cboAgents
             // 
             cboAgents.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             cboAgents.DropDownStyle = ComboBoxStyle.DropDownList;
             cboAgents.FormattingEnabled = true;
-            cboAgents.Location = new Point(13, 12);
-            cboAgents.Name = "cboModels";
-            cboAgents.Size = new Size(546, 23);
+            cboAgents.Location = new Point(271, 12);
+            cboAgents.Name = "cboAgents";
+            cboAgents.Size = new Size(288, 23);
             cboAgents.TabIndex = 3;
             cboAgents.SelectedIndexChanged += CboAgents_SelectedIndexChanged;
             // 
@@ -177,11 +179,31 @@
             btnLoadFromFile.UseVisualStyleBackColor = true;
             btnLoadFromFile.Click += BtnLoadFromFile_Click;
             // 
+            // txtSearch
+            // 
+            txtSearch.BorderStyle = BorderStyle.FixedSingle;
+            txtSearch.Location = new Point(17, 11);
+            txtSearch.Name = "txtSearch";
+            txtSearch.Size = new Size(171, 23);
+            txtSearch.TabIndex = 8;
+            // 
+            // btnSearch
+            // 
+            btnSearch.Location = new Point(190, 11);
+            btnSearch.Name = "btnSearch";
+            btnSearch.Size = new Size(75, 23);
+            btnSearch.TabIndex = 9;
+            btnSearch.Text = "Search";
+            btnSearch.UseVisualStyleBackColor = true;
+            btnSearch.Click += BtnSearch_Click;
+            // 
             // ChatForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(703, 445);
+            Controls.Add(btnSearch);
+            Controls.Add(txtSearch);
             Controls.Add(btnLoadFromFile);
             Controls.Add(lblStatus);
             Controls.Add(splitContainer1);
@@ -197,6 +219,7 @@
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
             splitContainer1.ResumeLayout(false);
             ResumeLayout(false);
+            PerformLayout();
         }
 
         #endregion
@@ -212,5 +235,7 @@
         private Button btnCancelAttachment;
         private Button btnAttach;
         private Label lblAttachmentStatus;
+        private TextBox txtSearch;
+        private Button btnSearch;
     }
 }
