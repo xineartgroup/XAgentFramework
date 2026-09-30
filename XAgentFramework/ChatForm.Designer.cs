@@ -30,7 +30,7 @@
         {
             txtPrompt = new TextBox();
             btnSend = new Button();
-            cboModels = new ComboBox();
+            cboAgents = new ComboBox();
             chatView1 = new ChatView();
             splitContainer1 = new SplitContainer();
             chatList1 = new ChatList();
@@ -70,14 +70,14 @@
             // 
             // cboModels
             // 
-            cboModels.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            cboModels.DropDownStyle = ComboBoxStyle.DropDownList;
-            cboModels.FormattingEnabled = true;
-            cboModels.Location = new Point(13, 12);
-            cboModels.Name = "cboModels";
-            cboModels.Size = new Size(546, 23);
-            cboModels.TabIndex = 3;
-            cboModels.SelectedIndexChanged += CboModels_SelectedIndexChanged;
+            cboAgents.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            cboAgents.DropDownStyle = ComboBoxStyle.DropDownList;
+            cboAgents.FormattingEnabled = true;
+            cboAgents.Location = new Point(13, 12);
+            cboAgents.Name = "cboModels";
+            cboAgents.Size = new Size(546, 23);
+            cboAgents.TabIndex = 3;
+            cboAgents.SelectedIndexChanged += CboAgents_SelectedIndexChanged;
             // 
             // chatView1
             // 
@@ -185,7 +185,7 @@
             Controls.Add(btnLoadFromFile);
             Controls.Add(lblStatus);
             Controls.Add(splitContainer1);
-            Controls.Add(cboModels);
+            Controls.Add(cboAgents);
             MinimumSize = new Size(450, 350);
             Name = "ChatForm";
             Text = "LLM Chat";
@@ -203,7 +203,7 @@
 
         private TextBox txtPrompt;
         private Button btnSend;
-        private ComboBox cboModels;
+        private ComboBox cboAgents;
         private ChatView chatView1;
         private SplitContainer splitContainer1;
         private ChatList chatList1;

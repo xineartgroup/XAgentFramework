@@ -5,8 +5,8 @@ namespace XAgentFramework
     public partial class ChatList : UserControl
     {
         private int selectedIndex = -1;
-        private const int LABEL_HEIGHT = 50;
         private int hoverIndex = -1;
+        private const int LABEL_HEIGHT = 50;
         private readonly List<ChatItem> items = [];
 
         private ContextMenuStrip contextMenu = null!;
@@ -328,6 +328,7 @@ namespace XAgentFramework
             {
                 items.RemoveAt(index);
                 UpdatePanelHeight();
+                SelectedIndex = index - 1;
                 panel1.Invalidate();
                 return index;
             }
@@ -341,10 +342,7 @@ namespace XAgentFramework
             {
                 items.Remove(item);
                 UpdatePanelHeight();
-                if (SelectedIndex >= items.Count)
-                {
-                    SelectedIndex--;
-                }
+                SelectedIndex = index - 1;
                 panel1.Invalidate();
             }
             return index;
@@ -376,13 +374,13 @@ namespace XAgentFramework
         public string GetUniqueName(string baseName)
         {
             int count = 1;
-            string modelName = $"{baseName} ({count})";
-            while (items.Any(item => item.Name == modelName))
+            string agentName = $"{baseName} ({count})";
+            while (items.Any(item => item.Name == agentName))
             {
                 count++;
-                modelName = $"{baseName} ({count})";
+                agentName = $"{baseName} ({count})";
             }
-            return modelName;
+            return agentName;
         }
 
         public void SelectItem(int index)

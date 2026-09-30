@@ -2,8 +2,8 @@
 {
     public partial class NameForm : Form
     {
-        public string ModelName = string.Empty;
-        public string ModelPrompt = string.Empty;
+        public string AgentName = string.Empty;
+        public string AgentPrompt = string.Empty;
 
         public NameForm()
         {
@@ -12,14 +12,14 @@
 
         private void NameForm_Load(object sender, EventArgs e)
         {
-            textBoxName.Text = !string.IsNullOrWhiteSpace(ModelName) ? ModelName : "Agent 1";
-            textBoxPrompt.Text = !string.IsNullOrWhiteSpace(ModelPrompt) ? ModelPrompt : string.Format("You are an agent called {0}.", textBoxName.Text);
+            textBoxName.Text = !string.IsNullOrWhiteSpace(AgentName) ? AgentName : "Agent 1";
+            textBoxPrompt.Text = !string.IsNullOrWhiteSpace(AgentPrompt) ? AgentPrompt : string.Format("You are an agent called {0}.", textBoxName.Text);
         }
 
         private void BtnOK_Click(object sender, EventArgs e)
         {
-            ModelName = textBoxName.Text;
-            ModelPrompt = textBoxPrompt.Text;
+            AgentName = textBoxName.Text;
+            AgentPrompt = textBoxPrompt.Text;
             DialogResult = DialogResult.OK;
             Close();
         }

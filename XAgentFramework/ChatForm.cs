@@ -1,6 +1,4 @@
 using System.Configuration;
-using System.Reflection;
-using System.Xml.Linq;
 
 namespace XAgentFramework
 {
@@ -20,7 +18,7 @@ namespace XAgentFramework
             chatList1.DeleteRequested += ChatList1_ItemDeleted;
         }
 
-        public static void ModelUrlMap()
+        public static void AgentUrlMap()
         {
             var keys = ConfigurationManager.AppSettings.AllKeys;
 
@@ -28,7 +26,7 @@ namespace XAgentFramework
 
             foreach (var nameKey in nameKeys)
             {
-                string modelName = ConfigurationManager.AppSettings[nameKey] ?? "";
+                string agentName = ConfigurationManager.AppSettings[nameKey] ?? "";
 
                 if (nameKey != null)
                 {
@@ -38,52 +36,86 @@ namespace XAgentFramework
                     string groupName = ConfigurationManager.AppSettings[groupKey] ?? "";
                     string key = GetAPIKey(groupName);
 
-                    if (!string.IsNullOrEmpty(modelName) && !string.IsNullOrEmpty(url))
+                    if (!string.IsNullOrEmpty(agentName) && !string.IsNullOrEmpty(url))
                     {
                         AgentInfo agentInfo = new()
                         {
-                            Name = modelName,
+                            Name = agentName,
                             URL = url,
                             Key = key,
                         };
-                        LLMClientFactory.ModelMap[modelName] = agentInfo;
+                        LLMClientFactory.ModelMap[agentName] = agentInfo;
                     }
 
-                    LLMClientFactory.AddNameKey(modelName, groupName);
+                    LLMClientFactory.AddNameKey(agentName, groupName);
                 }
             }
         }
 
-        private void LoadAgentChat(string fileName)
+        private async Task LoadAllAgentChatsAsync()
         {
-            ChatStorageService.LoadChatListItemAsync(fileName).ContinueWith(task =>
+            chatList1.ClearItems();
+
+            List<string> filesToLoad = [];
+            string manifestPath = Path.Combine(Directory.GetCurrentDirectory(), "agent_manifest.txt");
+
+            if (File.Exists(manifestPath))
             {
-                if (task.Exception != null)
+                filesToLoad = [.. File.ReadLines(manifestPath)
+                    .Select(line => line.Trim())
+                    .Where(line => !string.IsNullOrWhiteSpace(line))
+                    .Select(relativePath => Path.Combine(Directory.GetCurrentDirectory(), relativePath))
+                    .Where(File.Exists)];
+            }
+            else
+            {
+                string agentDir = Path.Combine(Directory.GetCurrentDirectory(), "agent_messages");
+                if (Directory.Exists(agentDir))
                 {
-                    MessageBox.Show($"Error loading model configuration: {task.Exception.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
+                    filesToLoad = [.. Directory.GetFiles(agentDir, "*.json")];
                 }
-                ChatItem chatItem = task.Result ?? new ChatItem();
+            }
+
+            if (filesToLoad.Count == 0) return;
+
+            Task<ChatItem?>[] loadTasks = [.. filesToLoad.Select(file => ChatStorageService.LoadChatListItemAsync(file))];
+
+            ChatItem?[] loadedItems = await Task.WhenAll(loadTasks);
+
+            for (int i = 0; i < loadedItems.Length; i++)
+            {
+                ChatItem? chatItem = loadedItems[i];
+                if (chatItem == null) continue;
+
                 List<Message> messages = chatItem.Messages;
-                string modelName = chatItem.Name;
-                string modelPrompt = chatItem.AgentInfo.SystemPrompt;
+                string agentName = chatItem.Name;
+                string agentPrompt = chatItem.AgentInfo.SystemPrompt;
                 string baseUrl = chatItem.AgentInfo.URL;
-                int result = chatList1.AddItem(new ChatItem(modelName, chatItem.AgentInfo.Name, baseUrl, chatItem.AgentInfo.Key, modelPrompt));
+
+                int result = chatList1.AddItem(new ChatItem(agentName, chatItem.AgentInfo.Name, baseUrl, chatItem.AgentInfo.Key, agentPrompt));
                 if (result < 0)
                 {
-                    MessageBox.Show($"Ensure that model '{modelName}' details are unique and correct.", "Failed to Add Model", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show($"Ensure that '{agentName}' details are unique and correct.", "Failed to Add Agent", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
                 else
                 {
-                    chatList1.SetSelectedMessages(messages);
-                    chatView1.RenderMessages(messages);
+                    chatList1.SetMessages(result, messages);
 
-                    ChatItem? selectedItem = chatList1.GetSelectedItem();
-                    selectedItem?.Client = LLMClientFactory.GetClient(chatItem.AgentInfo.Name, baseUrl, chatItem.AgentInfo.Key, modelPrompt);
-                    selectedItem?.Client?.UpdateHistory(GetHistory(messages));
-                    chatList1.SetSelectedItem(selectedItem);
+                    ChatItem? item = chatList1.GetAllItems()[result];
+                    item.Client = LLMClientFactory.GetClient(chatItem.AgentInfo.Name, baseUrl, chatItem.AgentInfo.Key, agentPrompt);
+                    item.Client?.UpdateHistory(GetHistory(messages));
                 }
-            }, TaskScheduler.FromCurrentSynchronizationContext());
+            }
+
+            if (chatList1.ItemCount() > 0)
+            {
+                chatList1.SelectedIndex = 0;
+                ChatItem? firstItem = chatList1.GetSelectedItem();
+                if (firstItem != null)
+                {
+                    chatView1.RenderMessages(firstItem.Messages);
+                }
+            }
         }
 
         private static string GetAPIKey(string apiGroup)
@@ -95,66 +127,62 @@ namespace XAgentFramework
             return File.ReadAllText($"api_keys\\{apiGroup}.txt");
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private async void Form1_Load(object sender, EventArgs e)
         {
             lblStatus.Text = "Loading...";
 
-            ModelUrlMap();
+            AgentUrlMap();
 
-            cboModels.Items.Add("<-- Select an Agent -->");
+            cboAgents.Items.Add("<-- Select an Agent -->");
             foreach (var kvp in LLMClientFactory.ModelMap)
             {
-                cboModels.Items.Add(kvp.Key);
+                cboAgents.Items.Add(kvp.Key);
             }
 
-            cboModels.SelectedIndex = 0;
+            cboAgents.SelectedIndex = 0;
 
-            string[] agentFiles = Directory.GetFiles("agent_messages", "*.json");
-            foreach (string agentFile in agentFiles)
-            {
-                LoadAgentChat(agentFile);
-            }
+            await LoadAllAgentChatsAsync();
 
             btnCancelAttachment.Enabled = false;
 
             lblStatus.Text = "Ready";
         }
 
-        private void CboModels_SelectedIndexChanged(object sender, EventArgs e)
+        private void CboAgents_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (cboModels.SelectedIndex > 0 && cboModels.Items.Count > cboModels.SelectedIndex && cboModels.Items[cboModels.SelectedIndex] is string baseName)
+            if (cboAgents.SelectedIndex > 0 && cboAgents.Items.Count > cboAgents.SelectedIndex && cboAgents.Items[cboAgents.SelectedIndex] is string baseName)
             {
                 string baseUrl = LLMClientFactory.ModelMap.TryGetValue(baseName, out AgentInfo? value) ? value.URL : string.Empty;
                 NameForm nameForm = new()
                 {
                     StartPosition = FormStartPosition.CenterParent,
-                    ModelName = chatList1.GetUniqueName(baseName),
+                    AgentName = chatList1.GetUniqueName(baseName),
                 };
                 if (nameForm.ShowDialog() == DialogResult.OK)
                 {
                     AgentInfo? agentInfo = LLMClientFactory.ModelMap.TryGetValue(baseName, out AgentInfo? val) ? val : null;
                     if (agentInfo != null)
                     {
-                        string modelName = nameForm.ModelName;
-                        string modelPrompt = nameForm.ModelPrompt;
-                        ILLMClient? client = LLMClientFactory.GetClient(agentInfo.Name, baseUrl, agentInfo.Key, modelPrompt);
+                        string agentName = nameForm.AgentName;
+                        string agentPrompt = nameForm.AgentPrompt;
+                        ILLMClient? client = LLMClientFactory.GetClient(agentInfo.Name, baseUrl, agentInfo.Key, agentPrompt);
 
                         if (client != null)
                         {
-                            int result = chatList1.AddItem(new ChatItem(modelName, agentInfo.Name, baseUrl, agentInfo.Key, modelPrompt));
+                            int result = chatList1.AddItem(new ChatItem(agentName, agentInfo.Name, baseUrl, agentInfo.Key, agentPrompt));
                             if (result >= 0)
                             {
-                                chatList1.SetText(modelName);
+                                chatList1.SetText(agentName);
                             }
                             else
                             {
-                                MessageBox.Show($"Ensure that model '{modelName}' details are unique and correct.", "Failed to Add Model", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                MessageBox.Show($"Ensure that '{agentName}' details are unique and correct.", "Failed to Add Agent", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             }
                             chatView1.RenderMessages([]);
                         }
                     }
                 }
-                cboModels.SelectedIndex = 0;
+                cboAgents.SelectedIndex = 0;
             }
         }
 
@@ -165,11 +193,38 @@ namespace XAgentFramework
             OpenFileDialog openFileDialog = new()
             {
                 Filter = "All Files (*.*)|*.*",
-                Title = "Select a Model Configuration File"
+                Title = "Select an Agent Configuration File"
             };
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                LoadAgentChat(openFileDialog.FileName);
+                ChatStorageService.LoadChatListItemAsync(openFileDialog.FileName).ContinueWith(task =>
+                {
+                    if (task.Exception != null)
+                    {
+                        MessageBox.Show($"Error loading agent configuration: {task.Exception.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                    ChatItem chatItem = task.Result ?? new ChatItem();
+                    List<Message> messages = chatItem.Messages;
+                    string agentName = chatItem.Name;
+                    string agentPrompt = chatItem.AgentInfo.SystemPrompt;
+                    string baseUrl = chatItem.AgentInfo.URL;
+                    int result = chatList1.AddItem(new ChatItem(agentName, chatItem.AgentInfo.Name, baseUrl, chatItem.AgentInfo.Key, agentPrompt));
+                    if (result < 0)
+                    {
+                        MessageBox.Show($"Ensure that '{agentName}' details are unique and correct.", "Failed to Add Agent", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                    else
+                    {
+                        chatList1.SetSelectedMessages(messages);
+                        chatView1.RenderMessages(messages);
+
+                        ChatItem? selectedItem = chatList1.GetSelectedItem();
+                        selectedItem?.Client = LLMClientFactory.GetClient(chatItem.AgentInfo.Name, baseUrl, chatItem.AgentInfo.Key, agentPrompt);
+                        selectedItem?.Client?.UpdateHistory(GetHistory(messages));
+                        chatList1.SetSelectedItem(selectedItem);
+                    }
+                }, TaskScheduler.FromCurrentSynchronizationContext());
             }
 
             lblStatus.Text = "Ready";
@@ -211,12 +266,11 @@ namespace XAgentFramework
 
         private void ChatList1_SaveRequested(object? sender, ChatList.ItemEventArgs e)
         {
-            MessageBox.Show($"'{e.NewItem?.Name}' has been saved.", "Model Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show($"'{e.NewItem?.Name}' has been saved.", "Agent Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void ChatList1_ItemUpdated(object? sender, ChatList.ItemEventArgs e)
         {
-            //MessageBox.Show($"'{e.OldItem?.Name}' has been updated to '{e.NewItem?.Name}'.", "Model Updated", MessageBoxButtons.OK, MessageBoxIcon.Information);
             string oldFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "agent_messages", $"{e.OldItem?.Name}.json");
             string newFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "agent_messages", $"{e.NewItem?.Name}.json");
             if (File.Exists(oldFilePath))
@@ -234,7 +288,6 @@ namespace XAgentFramework
 
         private void ChatList1_ItemDeleted(object? sender, ChatList.ItemEventArgs e)
         {
-            //MessageBox.Show($"'{e.NewItem?.Name}' has been deleted.", "Model Deleted", MessageBoxButtons.OK, MessageBoxIcon.Information);
             string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "agent_messages", $"{e.NewItem?.Name}.json");
             if (File.Exists(filePath))
             {
@@ -297,7 +350,7 @@ namespace XAgentFramework
                     Message request = new()
                     {
                         Sender = "Me",
-                        Recipient = chatItem?.Name ?? "Model",
+                        Recipient = chatItem?.Name ?? "Agent",
                         Content = txtPrompt.Text,
                         Time = DateTime.Now,
                         FilePaths = [.. filePaths]
@@ -322,7 +375,7 @@ namespace XAgentFramework
 
                         Message response = new()
                         {
-                            Sender = chatItem?.Name ?? "Model",
+                            Sender = chatItem?.Name ?? "Agent",
                             Recipient = "Me",
                             Content = answer.Text,
                             Time = DateTime.Now,
@@ -351,9 +404,9 @@ namespace XAgentFramework
                 {
                     Message response = new()
                     {
-                        Sender = chatItem?.Name ?? "Model",
+                        Sender = chatItem?.Name ?? "Agent",
                         Recipient = "Me",
-                        Content = "Please select a model.",
+                        Content = "Please select an agent.",
                         Time = DateTime.Now,
                     };
 
@@ -383,14 +436,44 @@ namespace XAgentFramework
             }
         }
 
-        private void ChatForm_FormClosing(object sender, FormClosingEventArgs e)
+        private async void ChatForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            foreach (ChatItem item in chatList1.GetAllItems())
+            e.Cancel = true;
+
+            try
             {
-                if (item != null)
+                string targetDir = Path.Combine(Directory.GetCurrentDirectory(), "agent_messages");
+                Directory.CreateDirectory(targetDir);
+
+                List<ChatItem> items = chatList1.GetAllItems();
+                List<string> manifestLines = [];
+                List<Task> saveTasks = [];
+
+                foreach (ChatItem item in items)
                 {
-                    ChatStorageService.SaveChatListItemAsync(item, $"agent_messages\\{item.Name}.json");
+                    if (item == null || string.IsNullOrWhiteSpace(item.Name))
+                        continue;
+
+                    string relativePath = Path.Combine("agent_messages", $"{item.Name}.json");
+                    string fullPath = Path.Combine(Directory.GetCurrentDirectory(), relativePath);
+
+                    saveTasks.Add(ChatStorageService.SaveChatListItemAsync(item, fullPath));
+                    manifestLines.Add(relativePath);
                 }
+
+                await Task.WhenAll(saveTasks);
+
+                string manifestPath = Path.Combine(Directory.GetCurrentDirectory(), "agent_manifest.txt");
+                await File.WriteAllLinesAsync(manifestPath, manifestLines);
+            }
+            catch
+            {
+                // Ignore or handle exceptions quietly as required
+            }
+            finally
+            {
+                FormClosing -= ChatForm_FormClosing;
+                Close();
             }
         }
     }
