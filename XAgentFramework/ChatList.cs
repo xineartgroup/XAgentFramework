@@ -140,7 +140,7 @@ namespace XAgentFramework
         {
             if (GetSelectedItem() is { } item)
             {
-                SettingsForm settingsForm = new()
+                AgentSettingsForm settingsForm = new()
                 {
                     SelectedItem = item,
                     StartPosition = FormStartPosition.CenterParent

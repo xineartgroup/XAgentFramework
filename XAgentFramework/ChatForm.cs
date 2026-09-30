@@ -1,4 +1,5 @@
 using System.Configuration;
+using System.Reflection;
 
 namespace XAgentFramework
 {
@@ -44,7 +45,7 @@ namespace XAgentFramework
                             URL = url,
                             Key = key,
                         };
-                        LLMClientFactory.ModelMap[agentName] = agentInfo;
+                        LLMClientFactory.AgentsModelMap[agentName] = agentInfo;
                     }
 
                     LLMClientFactory.AddNameKey(agentName, groupName);
@@ -104,6 +105,7 @@ namespace XAgentFramework
                     ChatItem? item = chatList1.GetAllItems()[result];
                     item.Client = LLMClientFactory.GetClient(chatItem.AgentInfo.Name, baseUrl, chatItem.AgentInfo.Key, agentPrompt);
                     item.Client?.UpdateHistory(GetHistory(messages));
+                    LLMClientFactory.AgentsNameMap.Add(agentName, chatItem.AgentInfo.Name);
                 }
             }
 
@@ -134,7 +136,7 @@ namespace XAgentFramework
             AgentUrlMap();
 
             cboAgents.Items.Add("<-- Select an Agent -->");
-            foreach (var kvp in LLMClientFactory.ModelMap)
+            foreach (var kvp in LLMClientFactory.AgentsModelMap)
             {
                 cboAgents.Items.Add(kvp.Key);
             }
@@ -152,7 +154,7 @@ namespace XAgentFramework
         {
             if (cboAgents.SelectedIndex > 0 && cboAgents.Items.Count > cboAgents.SelectedIndex && cboAgents.Items[cboAgents.SelectedIndex] is string baseName)
             {
-                string baseUrl = LLMClientFactory.ModelMap.TryGetValue(baseName, out AgentInfo? value) ? value.URL : string.Empty;
+                string baseUrl = LLMClientFactory.AgentsModelMap.TryGetValue(baseName, out AgentInfo? value) ? value.URL : string.Empty;
                 NameForm nameForm = new()
                 {
                     StartPosition = FormStartPosition.CenterParent,
@@ -160,7 +162,7 @@ namespace XAgentFramework
                 };
                 if (nameForm.ShowDialog() == DialogResult.OK)
                 {
-                    AgentInfo? agentInfo = LLMClientFactory.ModelMap.TryGetValue(baseName, out AgentInfo? val) ? val : null;
+                    AgentInfo? agentInfo = LLMClientFactory.AgentsModelMap.TryGetValue(baseName, out AgentInfo? val) ? val : null;
                     if (agentInfo != null)
                     {
                         string agentName = nameForm.AgentName;
@@ -173,6 +175,7 @@ namespace XAgentFramework
                             if (result >= 0)
                             {
                                 chatList1.SetText(agentName);
+                                LLMClientFactory.AgentsNameMap.Add(agentName, agentInfo.Name);
                             }
                             else
                             {
@@ -223,6 +226,7 @@ namespace XAgentFramework
                         selectedItem?.Client = LLMClientFactory.GetClient(chatItem.AgentInfo.Name, baseUrl, chatItem.AgentInfo.Key, agentPrompt);
                         selectedItem?.Client?.UpdateHistory(GetHistory(messages));
                         chatList1.SetSelectedItem(selectedItem);
+                        LLMClientFactory.AgentsNameMap.Add(agentName, chatItem.AgentInfo.Name);
                     }
                 }, TaskScheduler.FromCurrentSynchronizationContext());
             }

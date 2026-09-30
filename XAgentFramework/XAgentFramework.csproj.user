@@ -16,7 +16,7 @@
     <Compile Update="NameForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="SettingsForm.cs">
+    <Compile Update="AgentSettingsForm.cs">
       <SubType>Form</SubType>
     </Compile>
   </ItemGroup>

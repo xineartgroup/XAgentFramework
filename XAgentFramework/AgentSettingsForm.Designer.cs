@@ -1,6 +1,6 @@
 ﻿namespace XAgentFramework
 {
-    partial class SettingsForm
+    partial class AgentSettingsForm
     {
         /// <summary>
         /// Required designer variable.

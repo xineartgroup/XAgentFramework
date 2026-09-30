@@ -1,10 +1,10 @@
 ﻿namespace XAgentFramework
 {
-    public partial class SettingsForm : Form
+    public partial class AgentSettingsForm : Form
     {
         public ChatItem? SelectedItem = null;
 
-        public SettingsForm()
+        public AgentSettingsForm()
         {
             InitializeComponent();
         }
@@ -16,7 +16,7 @@
                 int index = 0;
                 int selectedIndex = -1;
 
-                foreach (var kvp in LLMClientFactory.ModelMap)
+                foreach (var kvp in LLMClientFactory.AgentsModelMap)
                 {
                     cboModels.Items.Add(kvp.Key);
                     if (SelectedItem.AgentInfo.URL == kvp.Value.URL)
@@ -38,7 +38,10 @@
             {
                 SelectedItem.Name = textBoxName.Text;
                 SelectedItem.AgentInfo.SystemPrompt = textBoxPrompt.Text + GetOrchestratorPrompt();
-                SelectedItem.AgentInfo.URL = LLMClientFactory.ModelMap[cboModels.SelectedItem?.ToString() ?? ""].URL;
+                SelectedItem.AgentInfo.Name = cboModels.SelectedItem?.ToString() ?? "";
+                var agentInfo = LLMClientFactory.AgentsModelMap[cboModels.SelectedItem?.ToString() ?? ""];
+                SelectedItem.AgentInfo.URL = agentInfo.URL;
+                SelectedItem.AgentInfo.Key = agentInfo.Key;
             }
             DialogResult = DialogResult.OK;
             Close();
@@ -54,7 +57,7 @@
                     "\r\nIf so, write a prompt for the tools, in the format:";
 
                 int i = 1;
-                foreach (KeyValuePair<string, AgentInfo> kvp in LLMClientFactory.ModelMap)
+                foreach (KeyValuePair<string, AgentInfo> kvp in LLMClientFactory.AgentsModelMap)
                 {
                     prompt += $"\r\n[{kvp.Key}]: [prompt{i++}]";
                 }
