@@ -23,10 +23,15 @@ namespace XAgentFramework
             get => selectedIndex;
             set
             {
-                ChatItem? oldItem = selectedIndex >= 0 && selectedIndex < items.Count ? items[selectedIndex] : null;
-                SelectionHover?.Invoke(this, new ItemEventArgs(oldItem, items[value]));
-                selectedIndex = value;
-                panel1.Invalidate();
+                if (selectedIndex != value)
+                {
+                    ChatItem? oldItem = selectedIndex >= 0 && selectedIndex < items.Count ? items[selectedIndex] : null;
+                    selectedIndex = value;
+                    ChatItem? newItem = selectedIndex >= 0 && selectedIndex < items.Count ? items[selectedIndex] : null;
+
+                    SelectionChanged?.Invoke(this, new ItemEventArgs(oldItem, newItem));
+                    panel1.Invalidate();
+                }
             }
         }
 
@@ -163,23 +168,24 @@ namespace XAgentFramework
             bool match = false;
             for (int i = 0; i < items.Count; i++)
             {
-                if (e.X >= 0 && e.X <= panel1.Width && e.Y >= i * LABEL_HEIGHT && e.Y <= (i + 1) * LABEL_HEIGHT)
+                if (e.X >= 0 && e.X <= panel1.Width && e.Y >= i * LABEL_HEIGHT && e.Y < (i + 1) * LABEL_HEIGHT)
                 {
                     match = true;
                     if (hoverIndex != i)
                     {
                         ChatItem? oldItem = hoverIndex >= 0 && hoverIndex < items.Count ? items[hoverIndex] : null;
-                        SelectionHover?.Invoke(this, new ItemEventArgs(oldItem, items[i]));
                         hoverIndex = i;
+                        SelectionHover?.Invoke(this, new ItemEventArgs(oldItem, items[i]));
                         panel1.Invalidate();
-                        break;
                     }
+                    break;
                 }
             }
+
             if (!match && hoverIndex >= 0)
             {
+                ChatItem? oldItem = items[hoverIndex];
                 hoverIndex = -1;
-                ChatItem? oldItem = hoverIndex >= 0 && hoverIndex < items.Count ? items[hoverIndex] : null;
                 SelectionHover?.Invoke(this, new ItemEventArgs(oldItem, null));
                 panel1.Invalidate();
             }
@@ -196,15 +202,10 @@ namespace XAgentFramework
             bool match = false;
             for (int i = 0; i < items.Count; i++)
             {
-                if (e.X > 0 && e.X < panel1.Width && e.Y > i * LABEL_HEIGHT && e.Y < (i + 1) * LABEL_HEIGHT)
+                if (e.X >= 0 && e.X <= panel1.Width && e.Y >= i * LABEL_HEIGHT && e.Y < (i + 1) * LABEL_HEIGHT)
                 {
                     match = true;
-                    if (SelectedIndex != i)
-                    {
-                        ChatItem? oldItem = selectedIndex >= 0 && selectedIndex < items.Count ? items[selectedIndex] : null;
-                        SelectionChanged?.Invoke(this, new ItemEventArgs(oldItem, items[i]));
-                        SelectItem(i);
-                    }
+                    SelectedIndex = i;
 
                     if (e.Button == MouseButtons.Right)
                     {
@@ -214,11 +215,9 @@ namespace XAgentFramework
                 }
             }
 
-            if (!match && SelectedIndex >= 0)
+            if (!match)
             {
                 SelectedIndex = -1;
-                ChatItem? oldItem = selectedIndex >= 0 && selectedIndex < items.Count ? items[selectedIndex] : null;
-                SelectionChanged?.Invoke(this, new ItemEventArgs(oldItem, null));
             }
         }
 
