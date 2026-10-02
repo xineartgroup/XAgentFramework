@@ -48,9 +48,9 @@
             // 
             // panelContainer
             // 
+            panelContainer.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             panelContainer.AutoScroll = true;
             panelContainer.Controls.Add(panel1);
-            panelContainer.Dock = DockStyle.Fill;
             panelContainer.Location = new Point(0, 0);
             panelContainer.Name = "panelContainer";
             panelContainer.Size = new Size(200, 300);

@@ -453,13 +453,36 @@ namespace XAgentFramework
                                 {
                                     Answer targetAnswer = await targetClient.Question(newPrompt, filePaths, cts.Token);
 
+                                    List<Message> targetMessages = targetChatItem.Messages;
+
+                                    Message targetRequest = new()
+                                    {
+                                        Sender = "Me",
+                                        Recipient = targetChatItem?.Name ?? "Agent",
+                                        Content = newPrompt,
+                                        Time = DateTime.Now,
+                                        FilePaths = [.. filePaths]
+                                    };
+
                                     if (targetAnswer.Success)
                                     {
+                                        targetMessages.Add(targetRequest);
+
                                         answerText = $"[YOUR TASK]:\r\n" + txtPrompt.Text + "\r\n" +
                                             $"[TASK 1]:\r\n{newPrompt}\r\n" +
                                             $"[TASK 1]:\r\n{targetAnswer.Text}\r\n";
                                         answer = await client.Question(answerText, filePaths, cts.Token);
                                         answerText = answer.Text;
+
+                                        Message targetResponse = new()
+                                        {
+                                            Sender = targetChatItem?.Name ?? "Agent",
+                                            Recipient = "Me",
+                                            Content = targetAnswer.Text,
+                                            Time = DateTime.Now,
+                                        };
+
+                                        targetMessages.Add(targetResponse);
                                     }
                                     else
                                     {

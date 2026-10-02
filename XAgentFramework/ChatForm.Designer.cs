@@ -118,12 +118,13 @@
             // chatList1
             // 
             chatList1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            chatList1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             chatList1.BackColor = Color.White;
             chatList1.BorderStyle = BorderStyle.Fixed3D;
-            chatList1.Location = new Point(3, 3);
+            chatList1.Location = new Point(0, 0);
             chatList1.MinimumSize = new Size(200, 200);
             chatList1.Name = "chatList1";
-            chatList1.Size = new Size(244, 363);
+            chatList1.Size = new Size(250, 369);
             chatList1.TabIndex = 0;
             // 
             // lblAttachmentStatus

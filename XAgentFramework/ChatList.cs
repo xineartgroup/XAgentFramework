@@ -57,7 +57,6 @@ namespace XAgentFramework
 
             panelContainer.Resize += (s, e) =>
             {
-                panel1.Width = panelContainer.ClientSize.Width;
                 UpdatePanelHeight();
             };
         }
@@ -149,8 +148,8 @@ namespace XAgentFramework
         private void UpdatePanelHeight()
         {
             panel1.SuspendLayout();
-            panel1.Width = panelContainer.ClientSize.Width;
-            panel1.Height = Math.Max(items.Count * LABEL_HEIGHT, panelContainer.ClientSize.Width > 0 ? panelContainer.ClientSize.Height : 0);
+            panel1.Width = panelContainer.ClientSize.Width - (panel1.Left * 2);
+            panel1.Height = Math.Max(items.Count * LABEL_HEIGHT, panelContainer.ClientSize.Width > 0 ? panelContainer.ClientSize.Height : 0) - (panel1.Top * 2);
             panel1.ResumeLayout();
         }
 

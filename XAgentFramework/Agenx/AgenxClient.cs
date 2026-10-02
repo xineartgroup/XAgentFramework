@@ -15,7 +15,7 @@ namespace XAgentFramework.Agenx
             {
                 if (prompt.StartsWith("get datetime", StringComparison.CurrentCultureIgnoreCase))
                 {
-                    return Task.FromResult(new Answer { Success = true, Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") });
+                    return Task.FromResult(new Answer { Success = true, Text = DateTime.Now.ToString("yyyy-MMM-dd HH:mm:ss") });
                 }
                 else if (prompt.StartsWith("get time", StringComparison.CurrentCultureIgnoreCase))
                 {
@@ -23,17 +23,55 @@ namespace XAgentFramework.Agenx
                 }
                 else if (prompt.StartsWith("get date", StringComparison.CurrentCultureIgnoreCase))
                 {
-                    return Task.FromResult(new Answer { Success = true, Text = DateTime.Now.ToString("yyyy-MM-dd") });
+                    return Task.FromResult(new Answer { Success = true, Text = DateTime.Now.ToString("yyyy-MMM-dd") });
                 }
                 else if (prompt.StartsWith("send mail", StringComparison.CurrentCultureIgnoreCase))
                 {
-                    //send mail {title} {recipient(s)} {content}
-                    var parts = prompt[10..].Split("] [", 5);
+                    var parts = prompt[10..].Split("] [");
                     string title = parts.Length > 0 ? parts[0].Replace("[", "").Replace("]", "") : "";
                     string recipients = parts.Length > 1 ? parts[1].Replace("[", "").Replace("]", "") : "";
                     string content = parts.Length > 2 ? parts[2].Replace("[", "").Replace("]", "") : "";
                     var result = SendEmail(title, recipients, content);
                     return Task.FromResult(new Answer { Success = result == "Email sent successfully!", Text = result });
+                }
+                else if (prompt.StartsWith("save file", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    //File write operations - save file [{filepath}] [{content}]
+                    var parts = prompt[10..].Split("] [");
+                    string filepath = parts.Length > 0 ? parts[0].Replace("[", "").Replace("]", "") : "";
+                    string content = parts.Length > 1 ? parts[1].Replace("[", "").Replace("]", "") : "";
+                    try
+                    {
+                        File.WriteAllLines(filepath, [content]);
+                        return Task.FromResult(new Answer { Success = true, Text = $"File saved to: {filepath}" });
+                    }
+                    catch (Exception ex)
+                    {
+                        return Task.FromResult(new Answer { Success = false, Text = $"Failed to save file: {ex.Message}" });
+                    }
+                }
+                else if (prompt.StartsWith("read file", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    //File read operations - read file [{filepath}]
+                    var parts = prompt[10..].Split("] [");
+                    string filepath = parts.Length > 0 ? parts[0].Replace("[", "").Replace("]", "") : "";
+                    filepath = filepath.Replace("\"", "").Trim();
+                    try
+                    {
+                        if (File.Exists(filepath))
+                        {
+                            var content = File.ReadAllLines(filepath);
+                            return Task.FromResult(new Answer { Success = true, Text = string.Join(Environment.NewLine, content) });
+                        }
+                        else
+                        {
+                            return Task.FromResult(new Answer { Success = false, Text = $"File not found: {filepath}" });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        return Task.FromResult(new Answer { Success = false, Text = $"Failed to read file: {ex.Message}" });
+                    }
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
