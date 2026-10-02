@@ -1,6 +1,6 @@
 ﻿namespace XAgentFramework
 {
-    public interface ILLMClient
+    public interface IAgentClient
     {
         /// <summary>
         /// Gets or sets the current conversation history.

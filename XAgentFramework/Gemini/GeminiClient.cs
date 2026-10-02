@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace XAgentFramework.Gemini
 {
-    public class GeminiClient : ILLMClient
+    public class GeminiClient : IAgentClient
     {
         private const int TIMEOUTSECONDS = 300; // 5-minute timeout
         private readonly HttpClient _httpClient;

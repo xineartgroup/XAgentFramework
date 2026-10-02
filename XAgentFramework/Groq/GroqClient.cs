@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace XAgentFramework.Groq
 {
-    public class GroqClient : ILLMClient
+    public class GroqClient : IAgentClient
     {
         private const int TIMEOUTSECONDS = 300; // 5-minute timeout
         private readonly HttpClient _httpClient;

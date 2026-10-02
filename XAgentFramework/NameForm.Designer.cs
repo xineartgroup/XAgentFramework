@@ -32,6 +32,7 @@
             btnOK = new Button();
             btnCancel = new Button();
             textBoxPrompt = new TextBox();
+            chkOrchestrator = new CheckBox();
             SuspendLayout();
             // 
             // textBoxName
@@ -43,7 +44,7 @@
             // 
             // btnOK
             // 
-            btnOK.Location = new Point(52, 144);
+            btnOK.Location = new Point(52, 201);
             btnOK.Name = "btnOK";
             btnOK.Size = new Size(75, 23);
             btnOK.TabIndex = 1;
@@ -53,7 +54,7 @@
             // 
             // btnCancel
             // 
-            btnCancel.Location = new Point(196, 144);
+            btnCancel.Location = new Point(196, 201);
             btnCancel.Name = "btnCancel";
             btnCancel.Size = new Size(75, 23);
             btnCancel.TabIndex = 1;
@@ -66,8 +67,19 @@
             textBoxPrompt.Location = new Point(52, 41);
             textBoxPrompt.Multiline = true;
             textBoxPrompt.Name = "textBoxPrompt";
-            textBoxPrompt.Size = new Size(219, 97);
+            textBoxPrompt.ScrollBars = ScrollBars.Vertical;
+            textBoxPrompt.Size = new Size(219, 100);
             textBoxPrompt.TabIndex = 0;
+            // 
+            // chkOrchestrator
+            // 
+            chkOrchestrator.AutoSize = true;
+            chkOrchestrator.Location = new Point(52, 147);
+            chkOrchestrator.Name = "chkOrchestrator";
+            chkOrchestrator.Size = new Size(127, 19);
+            chkOrchestrator.TabIndex = 9;
+            chkOrchestrator.Text = "Orchestrator Agent";
+            chkOrchestrator.UseVisualStyleBackColor = true;
             // 
             // NameForm
             // 
@@ -75,7 +87,8 @@
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             CancelButton = btnCancel;
-            ClientSize = new Size(324, 179);
+            ClientSize = new Size(324, 236);
+            Controls.Add(chkOrchestrator);
             Controls.Add(btnCancel);
             Controls.Add(btnOK);
             Controls.Add(textBoxPrompt);
@@ -94,5 +107,6 @@
         private Button btnOK;
         private Button btnCancel;
         private TextBox textBoxPrompt;
+        private CheckBox chkOrchestrator;
     }
 }

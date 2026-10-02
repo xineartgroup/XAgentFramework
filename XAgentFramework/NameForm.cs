@@ -4,6 +4,8 @@
     {
         public string AgentName = string.Empty;
         public string AgentPrompt = string.Empty;
+        public bool IsOrchestrator = false;
+        public bool IsAutoPrompt = false;
 
         public NameForm()
         {
@@ -14,6 +16,17 @@
         {
             textBoxName.Text = CleanName(AgentName);
             textBoxPrompt.Text = !string.IsNullOrWhiteSpace(AgentPrompt) ? AgentPrompt : string.Format("You are an agent called {0}.", textBoxName.Text);
+            if (IsAutoPrompt)
+            {
+                textBoxPrompt.Enabled = false;
+                chkOrchestrator.Enabled = false;
+            }
+            if (IsOrchestrator)
+            {
+                chkOrchestrator.Checked = true;
+                textBoxPrompt.Enabled = false;
+                textBoxPrompt.Text = ClientFactory.GetOrchestrationPrompt(textBoxName.Text);
+            }
         }
 
         private static string CleanName(string agentName)
@@ -68,13 +81,14 @@
                 MessageBox.Show("Agent name cannot contain \\ or / and must be between 3 and 50 characters long.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            if (LLMClientFactory.AgentsMap.ContainsKey(textBoxName.Text))
+            if (ClientFactory.AgentsMap.ContainsKey(textBoxName.Text))
             {
                 MessageBox.Show("Agent name already exists. Please choose a different name.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
             AgentName = textBoxName.Text;
-            AgentPrompt = textBoxPrompt.Text;
+            AgentPrompt = chkOrchestrator.Checked ? ClientFactory.GetOrchestrationPrompt(AgentName) : textBoxPrompt.Text;
+            IsOrchestrator = chkOrchestrator.Checked;
             DialogResult = DialogResult.OK;
             Close();
         }

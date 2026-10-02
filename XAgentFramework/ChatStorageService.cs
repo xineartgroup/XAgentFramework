@@ -59,7 +59,7 @@ namespace XAgentFramework
                 // Re-instantiate the runtime Client if URL and Key are available
                 if (!string.IsNullOrEmpty(chatItem.AgentInfo.URL) && !string.IsNullOrEmpty(chatItem.AgentInfo.Key))
                 {
-                    chatItem.Client = LLMClientFactory.GetClient(chatItem.AgentInfo.Name, chatItem.AgentInfo.URL, chatItem.AgentInfo.Key, chatItem.AgentInfo.SystemPrompt);
+                    chatItem.Client = ClientFactory.GetClient(chatItem.AgentInfo.Model, chatItem.AgentInfo.URL, chatItem.AgentInfo.Key, chatItem.AgentInfo.Prompt);
                 }
             }
 
@@ -84,7 +84,7 @@ namespace XAgentFramework
                 // Re-instantiate the runtime Client if URL and Key are available
                 if (!string.IsNullOrEmpty(chatItem.AgentInfo.URL) && !string.IsNullOrEmpty(chatItem.AgentInfo.Key))
                 {
-                    chatItem.Client = LLMClientFactory.GetClient(chatItem.AgentInfo.Name, chatItem.AgentInfo.URL, chatItem.AgentInfo.Key, chatItem.AgentInfo.SystemPrompt);
+                    chatItem.Client = ClientFactory.GetClient(chatItem.AgentInfo.Model, chatItem.AgentInfo.URL, chatItem.AgentInfo.Key, chatItem.AgentInfo.Prompt);
                 }
             }
 

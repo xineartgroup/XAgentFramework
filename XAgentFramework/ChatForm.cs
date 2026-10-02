@@ -21,7 +21,7 @@ namespace XAgentFramework
             chatView1.DeleteRequested += ChatView1_DeleteRequested;
         }
 
-        public static void AgentUrlMap()
+        public static void AgentMap()
         {
             var keys = ConfigurationManager.AppSettings.AllKeys;
 
@@ -35,22 +35,27 @@ namespace XAgentFramework
                 {
                     string urlKey = nameKey.Replace(":Name", ":Url");
                     string groupKey = nameKey.Replace(":Name", ":Group");
+                    string autoPromptKey = nameKey.Replace(":Name", ":AutoPrompt");
                     string url = ConfigurationManager.AppSettings[urlKey] ?? "";
                     string groupName = ConfigurationManager.AppSettings[groupKey] ?? "";
+                    string autoPromptValue = ConfigurationManager.AppSettings[autoPromptKey] ?? "";
                     string key = GetAPIKey(groupName);
 
                     if (!string.IsNullOrEmpty(agentName) && !string.IsNullOrEmpty(url))
                     {
                         AgentInfo agentInfo = new()
                         {
-                            Name = agentName,
+                            Model = agentName,
                             URL = url,
                             Key = key,
+                            Prompt = autoPromptValue,
+                            AutoPrompt = !string.IsNullOrEmpty(autoPromptValue),
+                            IsOrchestrator = false,
                         };
-                        LLMClientFactory.ModelsMap[agentName] = agentInfo;
+                        ClientFactory.ModelsMap[agentName] = agentInfo;
                     }
 
-                    LLMClientFactory.AddNameKey(agentName, groupName);
+                    ClientFactory.AddNameKey(agentName, groupName);
                 }
             }
         }
@@ -92,10 +97,10 @@ namespace XAgentFramework
 
                 List<Message> messages = chatItem.Messages;
                 string agentName = chatItem.Name;
-                string agentPrompt = chatItem.AgentInfo.SystemPrompt;
+                string agentPrompt = chatItem.AgentInfo.Prompt;
                 string baseUrl = chatItem.AgentInfo.URL;
 
-                int result = chatList1.AddItem(new ChatItem(agentName, chatItem.AgentInfo.Name, baseUrl, chatItem.AgentInfo.Key, agentPrompt));
+                int result = chatList1.AddItem(new ChatItem(agentName, chatItem.AgentInfo));
                 if (result < 0)
                 {
                     MessageBox.Show($"Ensure that '{agentName}' details are unique and correct.", "Failed to Add Agent", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -105,9 +110,9 @@ namespace XAgentFramework
                     chatList1.SetMessages(result, messages);
 
                     ChatItem? item = chatList1.GetAllItems()[result];
-                    item.Client = LLMClientFactory.GetClient(chatItem.AgentInfo.Name, baseUrl, chatItem.AgentInfo.Key, agentPrompt);
+                    item.Client = ClientFactory.GetClient(chatItem.AgentInfo.Model, baseUrl, chatItem.AgentInfo.Key, agentPrompt);
                     item.Client?.UpdateHistory(GetHistory(messages));
-                    LLMClientFactory.AgentsMap.Add(agentName, chatItem.AgentInfo);
+                    ClientFactory.AgentsMap.Add(agentName, chatItem.AgentInfo);
                 }
             }
 
@@ -131,14 +136,44 @@ namespace XAgentFramework
             return File.ReadAllText($"api_keys\\{apiGroup}.txt");
         }
 
+        private static void RemoveFromManifest(string baseDir, string itemName)
+        {
+            string manifestPath = Path.Combine(baseDir, "agent_manifest.txt");
+            if (!File.Exists(manifestPath))
+                return;
+
+            string entryToRemove = Path.Combine("agent_messages", $"{itemName}.json");
+
+            string[] lines = File.ReadAllLines(manifestPath);
+
+            List<string> remaining = new(lines.Length);
+            foreach (string line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                if (string.Equals(
+                        Path.GetFullPath(Path.Combine(baseDir, line)),
+                        Path.GetFullPath(Path.Combine(baseDir, entryToRemove)),
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                remaining.Add(line);
+            }
+
+            File.WriteAllLines(manifestPath, remaining);
+        }
+
         private async void Form1_Load(object sender, EventArgs e)
         {
             lblStatus.Text = "Loading...";
 
-            AgentUrlMap();
+            AgentMap();
 
             cboAgents.Items.Add("<-- Select an Agent -->");
-            foreach (var kvp in LLMClientFactory.ModelsMap)
+            foreach (var kvp in ClientFactory.ModelsMap)
             {
                 cboAgents.Items.Add(kvp.Key);
             }
@@ -156,38 +191,48 @@ namespace XAgentFramework
         {
             if (cboAgents.SelectedIndex > 0 && cboAgents.Items.Count > cboAgents.SelectedIndex && cboAgents.Items[cboAgents.SelectedIndex] is string baseName)
             {
-                string baseUrl = LLMClientFactory.ModelsMap.TryGetValue(baseName, out AgentInfo? value) ? value.URL : string.Empty;
-                NameForm nameForm = new()
+                AgentInfo? agent = ClientFactory.ModelsMap.TryGetValue(baseName, out AgentInfo? value) ? value : null;
+                if (agent != null)
                 {
-                    StartPosition = FormStartPosition.CenterParent,
-                    AgentName = chatList1.GetUniqueName(baseName),
-                };
-                if (nameForm.ShowDialog() == DialogResult.OK)
-                {
-                    AgentInfo? agentInfo = LLMClientFactory.ModelsMap.TryGetValue(baseName, out AgentInfo? val) ? val : null;
-                    if (agentInfo != null)
+                    NameForm nameForm = new()
                     {
-                        string agentName = nameForm.AgentName;
-                        string agentPrompt = nameForm.AgentPrompt;
-                        ILLMClient? client = LLMClientFactory.GetClient(agentInfo.Name, baseUrl, agentInfo.Key, agentPrompt);
-
-                        if (client != null)
+                        StartPosition = FormStartPosition.CenterParent,
+                        AgentName = chatList1.GetUniqueName(baseName),
+                        AgentPrompt = agent.Prompt,
+                        IsAutoPrompt = agent.AutoPrompt,
+                        IsOrchestrator = agent.IsOrchestrator
+                    };
+                    if (nameForm.ShowDialog() == DialogResult.OK)
+                    {
+                        AgentInfo? agentInfo = ClientFactory.ModelsMap.TryGetValue(baseName, out AgentInfo? val) ? val : null;
+                        if (agentInfo != null)
                         {
-                            int result = chatList1.AddItem(new ChatItem(agentName, agentInfo.Name, baseUrl, agentInfo.Key, agentPrompt));
-                            if (result >= 0)
+                            agentInfo.Prompt = nameForm.AgentPrompt;
+                            IAgentClient? client = ClientFactory.GetClient(agentInfo.Model, agent.URL, agentInfo.Key, agentInfo.Prompt);
+
+                            if (client != null)
                             {
-                                chatList1.SetText(agentName);
-                                LLMClientFactory.AgentsMap.Add(agentName, agentInfo);
+                                var chatItem = new ChatItem(nameForm.AgentName, agentInfo);
+                                int result = chatList1.AddItem(chatItem);
+                                if (result >= 0)
+                                {
+                                    chatList1.SetText(chatItem.Name);
+                                    ClientFactory.AgentsMap.Add(chatItem.Name, chatItem.AgentInfo);
+                                }
+                                else
+                                {
+                                    MessageBox.Show($"Ensure that '{nameForm.AgentName}' details are unique and correct.", "Failed to Add Agent", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                }
+                                chatView1.RenderMessages([]);
                             }
-                            else
-                            {
-                                MessageBox.Show($"Ensure that '{agentName}' details are unique and correct.", "Failed to Add Agent", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            }
-                            chatView1.RenderMessages([]);
                         }
                     }
+                    cboAgents.SelectedIndex = 0;
                 }
-                cboAgents.SelectedIndex = 0;
+                else
+                {
+                    MessageBox.Show($"Agent '{baseName}' not found in the configuration.", "Agent Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
@@ -212,9 +257,8 @@ namespace XAgentFramework
                     ChatItem chatItem = task.Result ?? new ChatItem();
                     List<Message> messages = chatItem.Messages;
                     string agentName = chatItem.Name;
-                    string agentPrompt = chatItem.AgentInfo.SystemPrompt;
                     string baseUrl = chatItem.AgentInfo.URL;
-                    int result = chatList1.AddItem(new ChatItem(agentName, chatItem.AgentInfo.Name, baseUrl, chatItem.AgentInfo.Key, agentPrompt));
+                    int result = chatList1.AddItem(new ChatItem(agentName, chatItem.AgentInfo));
                     if (result < 0)
                     {
                         MessageBox.Show($"Ensure that '{agentName}' details are unique and correct.", "Failed to Add Agent", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -225,16 +269,16 @@ namespace XAgentFramework
                         chatView1.RenderMessages(messages);
 
                         ChatItem? selectedItem = chatList1.GetSelectedItem();
-                        selectedItem?.Client = LLMClientFactory.GetClient(chatItem.AgentInfo.Name, baseUrl, chatItem.AgentInfo.Key, agentPrompt);
+                        selectedItem?.Client = ClientFactory.GetClient(chatItem.AgentInfo.Model, baseUrl, chatItem.AgentInfo.Key, chatItem.AgentInfo.Prompt);
                         selectedItem?.Client?.UpdateHistory(GetHistory(messages));
                         chatList1.SetSelectedItem(selectedItem);
-                        if (LLMClientFactory.AgentsMap.ContainsKey(agentName))
+                        if (ClientFactory.AgentsMap.ContainsKey(agentName))
                         {
-                            LLMClientFactory.AgentsMap[agentName] = chatItem.AgentInfo;
+                            ClientFactory.AgentsMap[agentName] = chatItem.AgentInfo;
                         }
                         else
                         {
-                            LLMClientFactory.AgentsMap.Add(agentName, chatItem.AgentInfo);
+                            ClientFactory.AgentsMap.Add(agentName, chatItem.AgentInfo);
                         }
                     }
                 }, TaskScheduler.FromCurrentSynchronizationContext());
@@ -303,24 +347,32 @@ namespace XAgentFramework
 
         private void ChatList1_ItemDeleted(object? sender, ChatItemEventArgs e)
         {
-            string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "agent_messages", $"{e.NewItem?.Name}.json");
+            if (e.OldItem == null || string.IsNullOrWhiteSpace(e.OldItem.Name))
+                return;
+
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string filePath = Path.Combine(baseDir, "agent_messages", $"{e.OldItem.Name}.json");
+
             if (File.Exists(filePath))
             {
                 try
                 {
                     File.Delete(filePath);
-                    lblStatus.Text = $"'{e.OldItem?.Name}' has been deleted.";
+                    lblStatus.Text = $"'{e.OldItem.Name}' has been deleted.";
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show($"Failed to delete file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+
+            ClientFactory.AgentsMap.Remove(e.OldItem.Name);
+            RemoveFromManifest(baseDir, e.OldItem.Name);
         }
 
         private void ChatView1_DeleteRequested(object? sender, ChatMessageEventArgs e)
         {
-            MessageBox.Show($"Message '{e.DeletedMessage?.Content}' has been deleted.", "Message Deleted", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            //MessageBox.Show($"Message '{e.DeletedMessage?.Content}' has been deleted.", "Message Deleted", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
             ChatItem? item = chatList1.GetSelectedItem();
             item?.Client?.UpdateHistory(GetHistory(e.CurrentMessages));
@@ -367,7 +419,7 @@ namespace XAgentFramework
             else if (!string.IsNullOrWhiteSpace(txtPrompt.Text) || filePaths.Count > 0)
             {
                 ChatItem? chatItem = chatList1.GetSelectedItem();
-                ILLMClient? client = chatItem?.Client;
+                IAgentClient? client = chatItem?.Client;
 
                 if (client != null)
                 {
@@ -387,28 +439,62 @@ namespace XAgentFramework
 
                     try
                     {
-
                         Answer answer = await client.Question(txtPrompt.Text, filePaths, cts.Token);
 
-                        if (answer.Success)
+                        if (answer.Success && IsPromptForOtherAgent(answer.Text, out string targetAgentName, out string newPrompt))
                         {
-                            messages.Add(request);
-                            chatList1.SetSelectedMessages(messages);
-                            txtPrompt.Text = "";
+                            ChatItem? targetChatItem = chatList1.GetAllItems().FirstOrDefault(item => item.Name.Equals(targetAgentName, StringComparison.OrdinalIgnoreCase));
+                            if (targetChatItem != null)
+                            {
+                                IAgentClient? targetClient = targetChatItem.Client;
+                                if (targetClient != null)
+                                {
+                                    Answer targetAnswer = await targetClient.Question(newPrompt, filePaths, cts.Token);
+
+                                    if (targetAnswer.Success)
+                                    {
+                                        txtPrompt.Text = "";
+                                        messages.Add(request);
+                                        chatList1.SetSelectedMessages(messages);
+                                    }
+
+                                    Message response = new()
+                                    {
+                                        Sender = chatItem?.Name ?? "Agent",
+                                        Recipient = "Me",
+                                        Content = targetAnswer.Text,
+                                        Time = DateTime.Now,
+                                    };
+
+                                    messages.Add(response);
+                                    chatList1.SetSelectedMessages(messages);
+
+                                    chatView1.RenderMessages(messages);
+                                }
+                            }
                         }
-
-                        Message response = new()
+                        else
                         {
-                            Sender = chatItem?.Name ?? "Agent",
-                            Recipient = "Me",
-                            Content = answer.Text,
-                            Time = DateTime.Now,
-                        };
+                            if (answer.Success)
+                            {
+                                messages.Add(request);
+                                chatList1.SetSelectedMessages(messages);
+                                txtPrompt.Text = "";
+                            }
 
-                        messages.Add(response);
-                        chatList1.SetSelectedMessages(messages);
+                            Message response = new()
+                            {
+                                Sender = chatItem?.Name ?? "Agent",
+                                Recipient = "Me",
+                                Content = answer.Text,
+                                Time = DateTime.Now,
+                            };
 
-                        chatView1.RenderMessages(messages);
+                            messages.Add(response);
+                            chatList1.SetSelectedMessages(messages);
+
+                            chatView1.RenderMessages(messages);
+                        }
                     }
                     catch (OperationCanceledException)
                     {
@@ -449,6 +535,23 @@ namespace XAgentFramework
             btnCancelAttachment.Enabled = false;
 
             btnSend.Image = Properties.Resources.send;
+        }
+
+        private static bool IsPromptForOtherAgent(string text, out string targetAgentName, out string newPrompt)
+        {
+            foreach (var agentName in ClientFactory.AgentsMap.Keys)
+            {
+                string prefix = $"[{agentName}]:";
+                if (text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    targetAgentName = agentName;
+                    newPrompt = text[prefix.Length..].Trim();
+                    return true;
+                }
+            }
+            targetAgentName = "";
+            newPrompt = "";
+            return false;
         }
 
         private void TxtPrompt_KeyPress(object sender, KeyPressEventArgs e)
