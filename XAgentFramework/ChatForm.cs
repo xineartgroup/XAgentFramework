@@ -441,7 +441,9 @@ namespace XAgentFramework
                     {
                         Answer answer = await client.Question(txtPrompt.Text, filePaths, cts.Token);
 
-                        if (answer.Success && IsPromptForOtherAgent(answer.Text, out string targetAgentName, out string newPrompt))
+                        string answerText = answer.Text;
+
+                        while (answer.Success && IsPromptForOtherAgent(answerText, out string targetAgentName, out string newPrompt))
                         {
                             ChatItem? targetChatItem = chatList1.GetAllItems().FirstOrDefault(item => item.Name.Equals(targetAgentName, StringComparison.OrdinalIgnoreCase));
                             if (targetChatItem != null)
@@ -453,48 +455,34 @@ namespace XAgentFramework
 
                                     if (targetAnswer.Success)
                                     {
-                                        txtPrompt.Text = "";
-                                        messages.Add(request);
-                                        chatList1.SetSelectedMessages(messages);
+                                        answerText = $"[YOUR TASK]:\r\n" + txtPrompt.Text + "\r\n" +
+                                            $"[TASK 1]:\r\n{newPrompt}\r\n" +
+                                            $"[TASK 1]:\r\n{targetAnswer.Text}\r\n";
+                                        answer = await client.Question(answerText, filePaths, cts.Token);
                                     }
-
-                                    Message response = new()
-                                    {
-                                        Sender = chatItem?.Name ?? "Agent",
-                                        Recipient = "Me",
-                                        Content = targetAnswer.Text,
-                                        Time = DateTime.Now,
-                                    };
-
-                                    messages.Add(response);
-                                    chatList1.SetSelectedMessages(messages);
-
-                                    chatView1.RenderMessages(messages);
                                 }
                             }
                         }
-                        else
+
+                        if (answer.Success)
                         {
-                            if (answer.Success)
-                            {
-                                messages.Add(request);
-                                chatList1.SetSelectedMessages(messages);
-                                txtPrompt.Text = "";
-                            }
-
-                            Message response = new()
-                            {
-                                Sender = chatItem?.Name ?? "Agent",
-                                Recipient = "Me",
-                                Content = answer.Text,
-                                Time = DateTime.Now,
-                            };
-
-                            messages.Add(response);
+                            messages.Add(request);
                             chatList1.SetSelectedMessages(messages);
-
-                            chatView1.RenderMessages(messages);
+                            txtPrompt.Text = "";
                         }
+
+                        Message response = new()
+                        {
+                            Sender = chatItem?.Name ?? "Agent",
+                            Recipient = "Me",
+                            Content = answer.Text,
+                            Time = DateTime.Now,
+                        };
+
+                        messages.Add(response);
+                        chatList1.SetSelectedMessages(messages);
+
+                        chatView1.RenderMessages(messages);
                     }
                     catch (OperationCanceledException)
                     {

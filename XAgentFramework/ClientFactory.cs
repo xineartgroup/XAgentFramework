@@ -48,10 +48,15 @@
             prompt += "\r\n\r\nFirst, determine if you need to use an agent to complete the task." +
                 "\r\nIf so, write your answer as a prompt in the format:" +
                 $"\r\n  [Agent Name]: prompt [{name}]" +
-                "\r\nYour answer will be sent to the appropriate agent that will send a follow-up prompt in the format." +
-                $"\r\n  [{name}]: answer" +
-                $"\r\nIf you see a prompt from an agent, display the answer or use the answer appropriately." +
-                "\r\n\r\nIf you don't need to use an agent, just answer the question directly.";
+                $"\r\nYour answer will be sent to the appropriate agent." +
+                $"\r\nYou will be sent a follow-up prompt in the format:" +
+                $"\r\n  [YOUR TASK]:\r\noriginal task" +
+                $"\r\n  [TASK 1]:\r\nprompt" +
+                $"\r\n  [TASK 1]:\r\nanswer" +
+                $"\r\n  [TASK 2]:\r\nprompt" +
+                $"\r\n  [TASK 2]:\r\nanswer" +
+                $"\r\nIf you see a prompt in the follow-up format, use the answer to send follow-up tasks." +
+                "\r\n\r\nIf you don't need to use an agent or you have no more tasks, answer the question.";
 
             return prompt;
         }
