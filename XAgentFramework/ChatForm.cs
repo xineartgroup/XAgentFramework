@@ -100,7 +100,7 @@ namespace XAgentFramework
                 string agentPrompt = chatItem.AgentInfo.Prompt;
                 string baseUrl = chatItem.AgentInfo.URL;
 
-                int result = chatList1.AddItem(new ChatItem(agentName, chatItem.AgentInfo));
+                int result = chatList1.AddItem(new ChatItem(agentName, chatItem.AgentInfo, chatItem.Client));
                 if (result < 0)
                 {
                     MessageBox.Show($"Ensure that '{agentName}' details are unique and correct.", "Failed to Add Agent", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -212,7 +212,7 @@ namespace XAgentFramework
 
                             if (client != null)
                             {
-                                var chatItem = new ChatItem(nameForm.AgentName, agentInfo);
+                                var chatItem = new ChatItem(nameForm.AgentName, agentInfo, client);
                                 int result = chatList1.AddItem(chatItem);
                                 if (result >= 0)
                                 {
@@ -258,7 +258,7 @@ namespace XAgentFramework
                     List<Message> messages = chatItem.Messages;
                     string agentName = chatItem.Name;
                     string baseUrl = chatItem.AgentInfo.URL;
-                    int result = chatList1.AddItem(new ChatItem(agentName, chatItem.AgentInfo));
+                    int result = chatList1.AddItem(new ChatItem(agentName, chatItem.AgentInfo, chatItem.Client));
                     if (result < 0)
                     {
                         MessageBox.Show($"Ensure that '{agentName}' details are unique and correct.", "Failed to Add Agent", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -459,6 +459,13 @@ namespace XAgentFramework
                                             $"[TASK 1]:\r\n{newPrompt}\r\n" +
                                             $"[TASK 1]:\r\n{targetAnswer.Text}\r\n";
                                         answer = await client.Question(answerText, filePaths, cts.Token);
+                                        answerText = answer.Text;
+                                    }
+                                    else
+                                    {
+                                        answer.Success = false;
+                                        answer.Text = $"{answer.Text}\r\n\r\n'{targetAnswer.Text}'.";
+                                        break;
                                     }
                                 }
                             }

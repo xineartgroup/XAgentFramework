@@ -17,10 +17,11 @@ namespace XAgentFramework
         {
         }
 
-        public ChatItem(string name, AgentInfo agentInfo)
+        public ChatItem(string name, AgentInfo agentInfo, IAgentClient? client)
         {
             Name = name;
             AgentInfo = agentInfo;
+            Client = client;
         }
 
         public ChatItem(ChatItem? other)

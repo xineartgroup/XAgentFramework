@@ -42,7 +42,10 @@
 
             foreach (KeyValuePair<string, AgentInfo> kvp in AgentsMap)
             {
-                prompt += $"\r\n  [{kvp.Key}]: [{kvp.Value.Prompt}]";
+                if (kvp.Key != name && kvp.Value.IsOrchestrator == false)
+                {
+                    prompt += $"\r\n  [{kvp.Key}]: [{kvp.Value.Prompt}]";
+                }
             }
 
             prompt += "\r\n\r\nFirst, determine if you need to use an agent to complete the task." +
@@ -50,11 +53,11 @@
                 $"\r\n  [Agent Name]: prompt [{name}]" +
                 $"\r\nYour answer will be sent to the appropriate agent." +
                 $"\r\nYou will be sent a follow-up prompt in the format:" +
-                $"\r\n  [YOUR TASK]:\r\noriginal task" +
-                $"\r\n  [TASK 1]:\r\nprompt" +
-                $"\r\n  [TASK 1]:\r\nanswer" +
-                $"\r\n  [TASK 2]:\r\nprompt" +
-                $"\r\n  [TASK 2]:\r\nanswer" +
+                $"\r\n[YOUR TASK]:\r\noriginal task" +
+                $"\r\n[TASK 1]:\r\nprompt" +
+                $"\r\n[TASK 1]:\r\nanswer" +
+                $"\r\n[TASK 2]:\r\nprompt" +
+                $"\r\n[TASK 2]:\r\nanswer" +
                 $"\r\nIf you see a prompt in the follow-up format, use the answer to send follow-up tasks." +
                 "\r\n\r\nIf you don't need to use an agent or you have no more tasks, answer the question.";
 
