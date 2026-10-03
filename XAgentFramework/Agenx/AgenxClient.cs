@@ -36,7 +36,6 @@ namespace XAgentFramework.Agenx
                 }
                 else if (prompt.StartsWith("save file", StringComparison.CurrentCultureIgnoreCase))
                 {
-                    //File write operations - save file [{filepath}] [{content}]
                     var parts = prompt[10..].Split("] [");
                     string filepath = parts.Length > 0 ? parts[0].Replace("[", "").Replace("]", "") : "";
                     string content = parts.Length > 1 ? parts[1].Replace("[", "").Replace("]", "") : "";
@@ -52,7 +51,6 @@ namespace XAgentFramework.Agenx
                 }
                 else if (prompt.StartsWith("read file", StringComparison.CurrentCultureIgnoreCase))
                 {
-                    //File read operations - read file [{filepath}]
                     var parts = prompt[10..].Split("] [");
                     string filepath = parts.Length > 0 ? parts[0].Replace("[", "").Replace("]", "") : "";
                     filepath = filepath.Replace("\"", "").Trim();
@@ -71,6 +69,72 @@ namespace XAgentFramework.Agenx
                     catch (Exception ex)
                     {
                         return Task.FromResult(new Answer { Success = false, Text = $"Failed to read file: {ex.Message}" });
+                    }
+                }
+                else if (prompt.StartsWith("list files, ", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    var parts = prompt[12..].Split("] [");
+                    string directoryPath = parts.Length > 0 ? parts[0].Replace("[", "").Replace("]", "") : "";
+                    directoryPath = directoryPath.Replace("\"", "").Trim();
+                    try
+                    {
+                        if (Directory.Exists(directoryPath))
+                        {
+                            var files = Directory.GetFiles(directoryPath);
+                            return Task.FromResult(new Answer { Success = true, Text = string.Join(Environment.NewLine, files) });
+                        }
+                        else
+                        {
+                            return Task.FromResult(new Answer { Success = false, Text = $"Directory not found: {directoryPath}" });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        return Task.FromResult(new Answer { Success = false, Text = $"Failed to list files: {ex.Message}" });
+                    }
+                }
+                else if (prompt.StartsWith("list files, ", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    var parts = prompt[12..].Split("] [");
+                    string directoryPath = parts.Length > 0 ? parts[0].Replace("[", "").Replace("]", "") : "";
+                    directoryPath = directoryPath.Replace("\"", "").Trim();
+                    try
+                    {
+                        if (Directory.Exists(directoryPath))
+                        {
+                            var files = Directory.GetFiles(directoryPath);
+                            return Task.FromResult(new Answer { Success = true, Text = string.Join(Environment.NewLine, files) });
+                        }
+                        else
+                        {
+                            return Task.FromResult(new Answer { Success = false, Text = $"Directory not found: {directoryPath}" });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        return Task.FromResult(new Answer { Success = false, Text = $"Failed to list files: {ex.Message}" });
+                    }
+                }
+                else if (prompt.StartsWith("list folders, ", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    var parts = prompt[14..].Split("] [");
+                    string directoryPath = parts.Length > 0 ? parts[0].Replace("[", "").Replace("]", "") : "";
+                    directoryPath = directoryPath.Replace("\"", "").Trim();
+                    try
+                    {
+                        if (Directory.Exists(directoryPath))
+                        {
+                            var folders = Directory.GetDirectories(directoryPath);
+                            return Task.FromResult(new Answer { Success = true, Text = string.Join(Environment.NewLine, folders) });
+                        }
+                        else
+                        {
+                            return Task.FromResult(new Answer { Success = false, Text = $"Directory not found: {directoryPath}" });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        return Task.FromResult(new Answer { Success = false, Text = $"Failed to list folders: {ex.Message}" });
                     }
                 }
             }

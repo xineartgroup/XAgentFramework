@@ -6,7 +6,7 @@ namespace XAgentFramework
 {
     public partial class ChatForm : Form
     {
-        private static readonly List<string> filePaths = [];
+        private static List<string> filePaths = [];
 
         private CancellationTokenSource? cts;
 
@@ -406,6 +406,17 @@ namespace XAgentFramework
             btnCancelAttachment.Enabled = false;
         }
 
+        private static List<string> FilePathsFromCommand(string prompt)
+        {
+            var filepaths = prompt.Split(',');
+            var filePaths = new List<string>();
+            foreach (string filepath in filepaths)
+            {
+                filePaths.Add($"{filepath}");
+            }
+            return filePaths;
+        }
+
         private async void BtnSend_Click(object sender, EventArgs e)
         {
             btnSend.Image = Properties.Resources.stop;
@@ -446,7 +457,18 @@ namespace XAgentFramework
                         while (answer.Success && IsPromptForOtherAgent(answerText, out string targetAgentName, out string newPrompt))
                         {
                             ChatItem? targetChatItem = chatList1.GetAllItems().FirstOrDefault(item => item.Name.Equals(targetAgentName, StringComparison.OrdinalIgnoreCase));
-                            if (targetChatItem != null)
+
+                            if (targetChatItem == null && targetAgentName.Equals("FilePathsFromCommand", StringComparison.OrdinalIgnoreCase))
+                            {
+                                filePaths = FilePathsFromCommand(newPrompt);
+
+                                answerText = $"[LIST OF FILES]:\r\n" + txtPrompt.Text + "\r\n" +
+                                    $"[TASK 1]:\r\n{newPrompt}\r\n" +
+                                    $"[TASK 1]:\r\nFiles have been attached.\r\n";
+                                answer = await client.Question(answerText, filePaths, cts.Token);
+                                answerText = answer.Text;
+                            }
+                            else if (targetChatItem != null)
                             {
                                 IAgentClient? targetClient = targetChatItem.Client;
                                 if (targetClient != null)
@@ -557,6 +579,13 @@ namespace XAgentFramework
 
         private static bool IsPromptForOtherAgent(string text, out string targetAgentName, out string newPrompt)
         {
+            if (text.StartsWith("[LIST OF FILES]", StringComparison.OrdinalIgnoreCase))
+            {
+                targetAgentName = "FilePathsFromCommand";
+                newPrompt = text[15..].Trim();
+                return true;
+            }
+
             foreach (var agentName in ClientFactory.AgentsMap.Keys)
             {
                 string prefix = $"[{agentName}]:";
