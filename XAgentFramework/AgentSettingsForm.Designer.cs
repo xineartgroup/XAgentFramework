@@ -65,7 +65,7 @@
             textBoxPrompt.Multiline = true;
             textBoxPrompt.Name = "textBoxPrompt";
             textBoxPrompt.ScrollBars = ScrollBars.Vertical;
-            textBoxPrompt.Size = new Size(259, 100);
+            textBoxPrompt.Size = new Size(259, 192);
             textBoxPrompt.TabIndex = 2;
             // 
             // textBoxName
@@ -114,7 +114,7 @@
             // chkOrchestrator
             // 
             chkOrchestrator.AutoSize = true;
-            chkOrchestrator.Location = new Point(109, 176);
+            chkOrchestrator.Location = new Point(109, 268);
             chkOrchestrator.Name = "chkOrchestrator";
             chkOrchestrator.Size = new Size(127, 19);
             chkOrchestrator.TabIndex = 8;

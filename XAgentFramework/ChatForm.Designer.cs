@@ -54,7 +54,7 @@
             txtPrompt.Location = new Point(41, 296);
             txtPrompt.Multiline = true;
             txtPrompt.Name = "txtPrompt";
-            txtPrompt.Size = new Size(299, 70);
+            txtPrompt.Size = new Size(293, 70);
             txtPrompt.TabIndex = 0;
             txtPrompt.KeyPress += TxtPrompt_KeyPress;
             // 
@@ -63,7 +63,7 @@
             btnSend.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             btnSend.FlatStyle = FlatStyle.Popup;
             btnSend.Image = Properties.Resources.send;
-            btnSend.Location = new Point(346, 296);
+            btnSend.Location = new Point(340, 296);
             btnSend.Name = "btnSend";
             btnSend.Size = new Size(70, 70);
             btnSend.TabIndex = 1;
@@ -88,7 +88,7 @@
             chatView1.BorderStyle = BorderStyle.Fixed3D;
             chatView1.Location = new Point(3, 3);
             chatView1.Name = "chatView1";
-            chatView1.Size = new Size(414, 264);
+            chatView1.Size = new Size(408, 264);
             chatView1.TabIndex = 4;
             // 
             // splitContainer1
@@ -113,6 +113,7 @@
             splitContainer1.Panel2MinSize = 400;
             splitContainer1.Size = new Size(674, 369);
             splitContainer1.SplitterDistance = 250;
+            splitContainer1.SplitterWidth = 8;
             splitContainer1.TabIndex = 5;
             // 
             // chatList1
@@ -133,7 +134,7 @@
             lblAttachmentStatus.BorderStyle = BorderStyle.Fixed3D;
             lblAttachmentStatus.Location = new Point(3, 270);
             lblAttachmentStatus.Name = "lblAttachmentStatus";
-            lblAttachmentStatus.Size = new Size(413, 23);
+            lblAttachmentStatus.Size = new Size(407, 23);
             lblAttachmentStatus.TabIndex = 6;
             // 
             // btnCancelAttachment

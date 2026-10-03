@@ -1,11 +1,16 @@
 using System.Buffers.Text;
 using System.Configuration;
 using System.Reflection;
+using System.Text.Json;
 
 namespace XAgentFramework
 {
     public partial class ChatForm : Form
     {
+        JsonSerializerOptions options;
+
+        AppSettings? settings;
+
         private static List<string> filePaths = [];
 
         private CancellationTokenSource? cts;
@@ -65,17 +70,46 @@ namespace XAgentFramework
             chatList1.ClearItems();
 
             List<string> filesToLoad = [];
-            string manifestPath = Path.Combine(Directory.GetCurrentDirectory(), "agent_manifest.txt");
+            string settingsPath = Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json");
 
-            if (File.Exists(manifestPath))
+            if (File.Exists(settingsPath))
             {
-                filesToLoad = [.. File.ReadLines(manifestPath)
+                try
+                {
+                    string jsonContent = await File.ReadAllTextAsync(settingsPath);
+
+                    options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    };
+
+                    settings = JsonSerializer.Deserialize<AppSettings>(jsonContent, options);
+
+                    if (settings?.ChatAgentNames != null)
+                    {
+                        filesToLoad = [.. settings.ChatAgentNames
                     .Select(line => line.Trim())
                     .Where(line => !string.IsNullOrWhiteSpace(line))
-                    .Select(relativePath => Path.Combine(Directory.GetCurrentDirectory(), relativePath))
+                    .Select(entry =>
+                    {
+                        if (File.Exists(entry)) return entry;
+
+                        string relativePath = entry.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+                            ? Path.Combine("agent_messages", entry)
+                            : Path.Combine("agent_messages", $"{entry}.json");
+
+                        return Path.Combine(Directory.GetCurrentDirectory(), relativePath);
+                    })
                     .Where(File.Exists)];
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to load settings: {ex.Message}");
+                }
             }
-            else
+
+            if (filesToLoad.Count == 0)
             {
                 string agentDir = Path.Combine(Directory.GetCurrentDirectory(), "agent_messages");
                 if (Directory.Exists(agentDir))
@@ -116,13 +150,14 @@ namespace XAgentFramework
                 }
             }
 
-            if (chatList1.ItemCount() > 0)
+            int targetIndex = settings?.SelectedAgentIndex ?? 0;
+            if (chatList1.ItemCount() > targetIndex && targetIndex >= 0)
             {
-                chatList1.SelectedIndex = 0;
-                ChatItem? firstItem = chatList1.GetSelectedItem();
-                if (firstItem != null)
+                chatList1.SelectedIndex = targetIndex;
+                ChatItem? selectedItem = chatList1.GetSelectedItem();
+                if (selectedItem != null)
                 {
-                    chatView1.RenderMessages(firstItem.Messages);
+                    chatView1.RenderMessages(selectedItem.Messages);
                 }
             }
         }
@@ -138,32 +173,43 @@ namespace XAgentFramework
 
         private static void RemoveFromManifest(string baseDir, string itemName)
         {
-            string manifestPath = Path.Combine(baseDir, "agent_manifest.txt");
-            if (!File.Exists(manifestPath))
+            string settingsPath = Path.Combine(baseDir, "appsettings.json");
+            if (!File.Exists(settingsPath))
                 return;
 
-            string entryToRemove = Path.Combine("agent_messages", $"{itemName}.json");
-
-            string[] lines = File.ReadAllLines(manifestPath);
-
-            List<string> remaining = new(lines.Length);
-            foreach (string line in lines)
+            try
             {
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
+                string jsonContent = File.ReadAllText(settingsPath);
 
-                if (string.Equals(
-                        Path.GetFullPath(Path.Combine(baseDir, line)),
-                        Path.GetFullPath(Path.Combine(baseDir, entryToRemove)),
-                        StringComparison.OrdinalIgnoreCase))
+                var options = new JsonSerializerOptions
                 {
-                    continue;
-                }
+                    PropertyNameCaseInsensitive = true,
+                    WriteIndented = true
+                };
 
-                remaining.Add(line);
+                AppSettings? settings = JsonSerializer.Deserialize<AppSettings>(jsonContent, options);
+                if (settings?.ChatAgentNames == null || settings.ChatAgentNames.Count == 0)
+                    return;
+
+                string entryToRemove = Path.Combine("agent_messages", $"{itemName}.json");
+                string targetFullPath = Path.GetFullPath(Path.Combine(baseDir, entryToRemove));
+
+                settings.ChatAgentNames = [.. settings.ChatAgentNames
+                    .Where(relativePath =>
+                    {
+                        if (string.IsNullOrWhiteSpace(relativePath)) return false;
+
+                        string fullPath = Path.GetFullPath(Path.Combine(baseDir, relativePath.Trim()));
+                        return !string.Equals(fullPath, targetFullPath, StringComparison.OrdinalIgnoreCase);
+                    })];
+
+                string updatedJson = JsonSerializer.Serialize(settings, options);
+                File.WriteAllText(settingsPath, updatedJson);
             }
-
-            File.WriteAllLines(manifestPath, remaining);
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to update settings file: {ex.Message}");
+            }
         }
 
         private async void Form1_Load(object sender, EventArgs e)
@@ -181,6 +227,9 @@ namespace XAgentFramework
             cboAgents.SelectedIndex = 0;
 
             await LoadAllAgentChatsAsync();
+
+            Size = settings?.WindowSize ?? Size;
+            WindowState = settings?.WindowMaximized == true ? FormWindowState.Maximized : FormWindowState.Normal;
 
             btnCancelAttachment.Enabled = false;
 
@@ -412,9 +461,45 @@ namespace XAgentFramework
             var filePaths = new List<string>();
             foreach (string filepath in filepaths)
             {
-                filePaths.Add($"{filepath}");
+                if (Directory.Exists(filepath))
+                {
+                    var filesInFolder = Directory.GetFiles(filepath, "*.*", SearchOption.AllDirectories);
+                    filePaths.AddRange(filesInFolder);
+                }
+                else if (File.Exists(filepath))
+                {
+                    filePaths.Add(filepath);
+                }
+                else
+                {
+                    Console.WriteLine($"Invalid path: {filepath}");
+                }
             }
             return filePaths;
+        }
+
+        private static bool IsPromptForOtherAgent(string text, out string targetAgentName, out string newPrompt)
+        {
+            if (text.StartsWith("[LIST OF FILES]", StringComparison.OrdinalIgnoreCase))
+            {
+                targetAgentName = "FilePathsFromCommand";
+                newPrompt = text[15..].Trim();
+                return true;
+            }
+
+            foreach (var agentName in ClientFactory.AgentsMap.Keys)
+            {
+                string prefix = $"[{agentName}]:";
+                if (text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    targetAgentName = agentName;
+                    newPrompt = text[prefix.Length..].Trim();
+                    return true;
+                }
+            }
+            targetAgentName = "";
+            newPrompt = "";
+            return false;
         }
 
         private async void BtnSend_Click(object sender, EventArgs e)
@@ -456,9 +541,7 @@ namespace XAgentFramework
 
                         while (answer.Success && IsPromptForOtherAgent(answerText, out string targetAgentName, out string newPrompt))
                         {
-                            ChatItem? targetChatItem = chatList1.GetAllItems().FirstOrDefault(item => item.Name.Equals(targetAgentName, StringComparison.OrdinalIgnoreCase));
-
-                            if (targetChatItem == null && targetAgentName.Equals("FilePathsFromCommand", StringComparison.OrdinalIgnoreCase))
+                            if (targetAgentName.Equals("FilePathsFromCommand", StringComparison.OrdinalIgnoreCase))
                             {
                                 filePaths = FilePathsFromCommand(newPrompt);
 
@@ -468,14 +551,16 @@ namespace XAgentFramework
                                 answer = await client.Question(answerText, filePaths, cts.Token);
                                 answerText = answer.Text;
                             }
-                            else if (targetChatItem != null)
+                            else
                             {
-                                IAgentClient? targetClient = targetChatItem.Client;
+                                ChatItem? targetChatItem = chatList1.GetAllItems().FirstOrDefault(item => item.Name.Equals(targetAgentName, StringComparison.OrdinalIgnoreCase));
+
+                                IAgentClient? targetClient = targetChatItem?.Client;
                                 if (targetClient != null)
                                 {
                                     Answer targetAnswer = await targetClient.Question(newPrompt, filePaths, cts.Token);
 
-                                    List<Message> targetMessages = targetChatItem.Messages;
+                                    List<Message> targetMessages = targetChatItem?.Messages ?? [];
 
                                     Message targetRequest = new()
                                     {
@@ -577,30 +662,6 @@ namespace XAgentFramework
             btnSend.Image = Properties.Resources.send;
         }
 
-        private static bool IsPromptForOtherAgent(string text, out string targetAgentName, out string newPrompt)
-        {
-            if (text.StartsWith("[LIST OF FILES]", StringComparison.OrdinalIgnoreCase))
-            {
-                targetAgentName = "FilePathsFromCommand";
-                newPrompt = text[15..].Trim();
-                return true;
-            }
-
-            foreach (var agentName in ClientFactory.AgentsMap.Keys)
-            {
-                string prefix = $"[{agentName}]:";
-                if (text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                {
-                    targetAgentName = agentName;
-                    newPrompt = text[prefix.Length..].Trim();
-                    return true;
-                }
-            }
-            targetAgentName = "";
-            newPrompt = "";
-            return false;
-        }
-
         private void TxtPrompt_KeyPress(object sender, KeyPressEventArgs e)
         {
             if (e.KeyChar == (char)Keys.Enter && (ModifierKeys & Keys.Shift) == 0)
@@ -640,7 +701,7 @@ namespace XAgentFramework
                 Directory.CreateDirectory(targetDir);
 
                 List<ChatItem> items = chatList1.GetAllItems();
-                List<string> manifestLines = [];
+                List<string> agentPaths = [];
                 List<Task> saveTasks = [];
 
                 HashSet<string> expectedFiles = new(StringComparer.OrdinalIgnoreCase);
@@ -656,7 +717,7 @@ namespace XAgentFramework
                     expectedFiles.Add($"{item.Name}.json");
 
                     saveTasks.Add(ChatStorageService.SaveChatListItemAsync(item, fullPath));
-                    manifestLines.Add(relativePath);
+                    agentPaths.Add(relativePath);
                 }
 
                 await Task.WhenAll(saveTasks);
@@ -678,8 +739,38 @@ namespace XAgentFramework
                     }
                 }
 
-                string manifestPath = Path.Combine(currentDir, "agent_manifest.txt");
-                await File.WriteAllLinesAsync(manifestPath, manifestLines);
+                string settingsPath = Path.Combine(currentDir, "appsettings.json");
+                AppSettings settings = new();
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    WriteIndented = true
+                };
+
+                if (File.Exists(settingsPath))
+                {
+                    try
+                    {
+                        string jsonContent = await File.ReadAllTextAsync(settingsPath);
+                        AppSettings? existingSettings = JsonSerializer.Deserialize<AppSettings>(jsonContent, options);
+                        if (existingSettings != null)
+                        {
+                            settings = existingSettings;
+                        }
+                    }
+                    catch
+                    {
+
+                    }
+                }
+
+                settings.WindowSize = WindowState == FormWindowState.Normal ? Size : RestoreBounds.Size;
+                settings.WindowMaximized = WindowState == FormWindowState.Maximized;
+                settings.ChatAgentNames = [.. agentPaths.Select(p => Path.GetFileNameWithoutExtension(p))];
+
+                string updatedJson = JsonSerializer.Serialize(settings, options);
+                await File.WriteAllTextAsync(settingsPath, updatedJson);
             }
             catch
             {

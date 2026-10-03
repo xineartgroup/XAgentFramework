@@ -60,7 +60,7 @@
                 $"\r\n[TASK 2]:\r\nanswer" +
                 $"\r\nIf you see a prompt in the follow-up format, use the answer to send follow-up tasks." +
                 $"\r\n\r\nIf you don't need to use an agent or you have no more tasks, answer the question." +
-                $"\r\n\r\nNOTE: If you are asked for non-text based files (e.g., images, pdf files), provide the following template as a task." +
+                $"\r\n\r\nIf you are asked for folders or non-text based files (e.g., images, pdf files), provide the following template as a task." +
                 $"\r\n[LIST OF FILES] [comma-separated file paths]." +
                 $"\r\nThe list will be used to attach the specified files to the prompt.";
 
